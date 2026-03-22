@@ -252,7 +252,7 @@ export default function Page() {
     </header>
 
     {/* ── LAYOUT WRAPPER — siempre 1200px max, padding fijo ── */}
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 28px 100px"}}>
+    <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 28px 100px",width:"100%"}}>
 
       {/* ════════════════ HERO (solo sin resultado) ════════════════ */}
       {!res&&!loading&&(
@@ -434,12 +434,14 @@ export default function Page() {
               <div className="g2" style={{marginBottom:16}}>
                 <div className="card">
                   <div className="lbl" style={{marginBottom:12}}>Precios del producto — {mp.tipo}</div>
+                  <div style={{height:200,position:"relative"}}>
                   <BarChart bars={[
                     {label:"Venta mín",value:mp.precio_venta_m2_min||mp.precio_venta_producto_m2||0,color:"#93c5fd"},
                     {label:"Venta prom",value:mp.precio_venta_m2_promedio||mp.precio_venta_producto_m2||0,color:"#2563a8"},
                     {label:"Venta máx",value:mp.precio_venta_m2_max||mp.precio_venta_producto_m2||0,color:"#1d4ed8"},
                     {label:"Renta/m²/mes",value:(mp.precio_renta_mensual_m2||mp.precio_renta_producto_m2_mes||0)*10,color:"#d97706"},
                   ]}/>
+                  </div>
                   <div style={{display:"flex",justifyContent:"space-between",marginTop:12,fontSize:11,color:C.mid,borderTop:`1px solid ${C.border}`,paddingTop:10}}>
                     <span>Absorción: <strong>{mp.absorcion_estimada_meses||mp.absorcion_meses} meses</strong></span>
                     <span>Demanda: <strong style={{color:mp.demanda==="alta"?"#15803d":mp.demanda==="baja"?"#dc2626":"#d97706"}}>{(mp.demanda||"").toUpperCase()}</strong></span>
@@ -487,11 +489,26 @@ export default function Page() {
         );
 
         /* ════ COMPLETO — 2 tabs ════ */
+        // Recalculate financials from raw numbers to ensure consistency
+        const fin = res.analisis?.financiero;
+        let finFixed = fin;
+        if (fin) {
+          const ingresos = fin.ingreso_total_estimado || 0;
+          const costoTotal = fin.costo_total_proyecto || fin.costo_total || 0;
+          const utilidad = ingresos - costoTotal;
+          const margen = ingresos > 0 ? (utilidad / ingresos * 100) : 0;
+          const roi = costoTotal > 0 ? (utilidad / costoTotal * 100) : 0;
+          // TIR aprox anualizada: (1 + roi/100)^(12/plazo) - 1
+          const plazo = fin.plazo_meses || 24;
+          const tir = ((Math.pow(1 + roi/100, 12/plazo) - 1) * 100);
+          finFixed = { ...fin, utilidad_bruta: utilidad, margen_bruto_pct: Math.round(margen*10)/10, roi_pct: Math.round(roi*10)/10, tir_estimada_pct: Math.round(tir*10)/10 };
+        }
+
         return (
           <div className="up">
             <Header/>
 
-            {/* Tab switcher */}
+            {/* Tab switcher — solo 2 tabs */}
             <div style={{display:"flex",gap:4,marginBottom:20,borderBottom:`1px solid ${C.border}`,paddingBottom:12}}>
               {[{id:"reporte",label:"Reporte completo"},{id:"calculadora",label:"Calculadora"}].map(t=>(
                 <button key={t.id} onClick={()=>setTab(t.id as any)}
@@ -591,21 +608,21 @@ export default function Page() {
                   </div>
                 )}
 
-                {/* Financiero */}
-                {res.analisis?.financiero&&(
+                {/* Financiero — usando finFixed para consistencia */}
+                {finFixed&&(
                   <div className="card">
                     <div className="lbl" style={{marginBottom:14}}>Análisis Financiero</div>
                     <div className="g4">
                       {[
-                        {l:"Precio terreno",v:$(res.analisis.financiero.precio_terreno)},
-                        {l:"Costo construcción",v:$(res.analisis.financiero.costo_construccion_total)},
-                        {l:"Costo total proyecto",v:$(res.analisis.financiero.costo_total_proyecto)},
-                        {l:"Ingreso estimado",v:$(res.analisis.financiero.ingreso_total_estimado)},
-                        {l:"Utilidad bruta",v:$(res.analisis.financiero.utilidad_bruta),col:res.analisis.financiero.utilidad_bruta>=0?"#15803d":"#dc2626"},
-                        {l:"Margen bruto",v:pct(res.analisis.financiero.margen_bruto_pct),col:res.analisis.financiero.margen_bruto_pct>=15?"#15803d":res.analisis.financiero.margen_bruto_pct>=8?"#d97706":"#dc2626"},
-                        {l:"ROI",v:pct(res.analisis.financiero.roi_pct)},
-                        {l:"TIR estimada",v:pct(res.analisis.financiero.tir_estimada_pct)},
-                        {l:"Plazo",v:`${res.analisis.financiero.plazo_meses} meses`},
+                        {l:"Precio terreno",v:$(finFixed.precio_terreno)},
+                        {l:"Costo construcción",v:$(finFixed.costo_construccion_total)},
+                        {l:"Costo total proyecto",v:$(finFixed.costo_total_proyecto)},
+                        {l:"Ingreso estimado",v:$(finFixed.ingreso_total_estimado)},
+                        {l:"Utilidad bruta",v:$(finFixed.utilidad_bruta),col:finFixed.utilidad_bruta>=0?"#15803d":"#dc2626"},
+                        {l:"Margen bruto",v:pct(finFixed.margen_bruto_pct),col:finFixed.margen_bruto_pct>=15?"#15803d":finFixed.margen_bruto_pct>=8?"#d97706":"#dc2626"},
+                        {l:"ROI",v:pct(finFixed.roi_pct),col:finFixed.roi_pct>=20?"#15803d":finFixed.roi_pct>=10?"#d97706":"#dc2626"},
+                        {l:"TIR estimada",v:pct(finFixed.tir_estimada_pct),col:finFixed.tir_estimada_pct>=18?"#15803d":finFixed.tir_estimada_pct>=10?"#d97706":"#dc2626"},
+                        {l:"Plazo",v:`${finFixed.plazo_meses} meses`},
                       ].map(k=>(
                         <div key={k.l} className="kpi">
                           <div className="k-lbl">{k.l}</div>
@@ -754,7 +771,9 @@ export default function Page() {
                 {/* Curva sensibilidad */}
                 <div className="card">
                   <div className="lbl" style={{marginBottom:10}}>Curva de sensibilidad — precio de venta vs utilidad</div>
+                  <div style={{height:180,position:"relative"}}>
                   <LineChart points={sensPoints} baseIdx={10}/>
+                  </div>
                   <div style={{display:"flex",gap:16,marginTop:10,fontSize:11,color:C.mid}}>
                     <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:12,height:2,background:"#2563a8"}}/> Utilidad bruta</span>
                     <span style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:12,height:2,background:"#dc2626",borderTop:"1px dashed #dc2626"}}/> Break-even</span>
