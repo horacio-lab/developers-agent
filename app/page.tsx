@@ -16,9 +16,9 @@ export default function Page() {
 
   const needsProduct = tipo==="mercado"||tipo==="completo";
 
-  async function run(productoOverride?:string){
+  async function run(){
     if(!dir||!m2||!px){setErr("Completa todos los campos.");return;}
-    const producto = productoOverride||prod;
+    const producto = prod;
     if(needsProduct&&!producto){setErr("Indica qué quieres construir.");return;}
     setErr("");setRes(null);setNeedsProd(false);setLoading(true);
     for(let i=0;i<STEPS.length;i++){setStep(i);await new Promise(r=>setTimeout(r,700));}
@@ -33,8 +33,17 @@ export default function Page() {
     finally{setLoading(false);}
   }
 
-  const sem=res?.analisis?.semaforo;
-  const semCol=sem==="VERDE"?"#15803d":sem==="AMARILLO"?"#d97706":sem==="ROJO"?"#dc2626":"#94a3b8";
+  // Helper: extract semaforo from either analisis.semaforo location
+  const sem = res?.analisis?.semaforo;
+  const semCol = sem==="VERDE"?"#15803d":sem==="AMARILLO"?"#d97706":sem==="ROJO"?"#dc2626":"#94a3b8";
+
+  // For "mercado" type: analisis.mercado_producto, for "completo": analisis.mercado
+  const mercadoProd = res?.analisis?.mercado_producto || res?.analisis?.mercado;
+  const precioTerreno = res?.analisis?.precio_terreno_mercado || (res?.analisis?.mercado ? {
+    promedio_m2: res.analisis.mercado.precio_terreno_mercado_m2_promedio,
+    evaluacion_precio: res.analisis.mercado.evaluacion_precio_terreno,
+    porcentaje_diferencia: res.analisis.mercado.porcentaje_sobre_mercado,
+  } : null);
 
   return(<>
     <style>{`
@@ -52,12 +61,13 @@ export default function Page() {
       .spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
       @keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
       .up{animation:up .4s ease forwards;}
-      .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
       .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
-      @media(max-width:580px){.row2,.row3{grid-template-columns:1fr;}}
+      @media(max-width:580px){.row3{grid-template-columns:1fr;}}
       .kgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
       @media(min-width:580px){.kgrid{grid-template-columns:repeat(4,1fr);}}
       .lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:18px;}
+      .fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:22px;}
+      .mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:18px;}
       .pill{display:inline-block;padding:4px 11px;border-radius:100px;font-size:12px;font-weight:500;background:#EEE9E3;color:#5a4f44;margin:3px 3px 0 0;}
       .giro{font-size:12px;color:#3a3228;padding:5px 0;border-bottom:1px solid #F0EBE5;line-height:1.4;}
       .giro:last-child{border-bottom:none;}
@@ -82,7 +92,7 @@ export default function Page() {
     <main style={{maxWidth:700,margin:"0 auto",padding:"64px 24px 100px"}}>
 
       {/* HERO */}
-      {!res&&!loading&&!needsProd&&(
+      {!res&&!loading&&(
         <div style={{marginBottom:52,textAlign:"center"}} className="up">
           <div style={{display:"inline-flex",alignItems:"center",gap:7,background:"#DBEAFE",borderRadius:100,padding:"5px 14px",marginBottom:26}}>
             <div style={{width:7,height:7,borderRadius:"50%",background:"#2563a8"}}/>
@@ -98,39 +108,38 @@ export default function Page() {
       )}
 
       {/* FORM */}
-      {!needsProd&&(
-        <div className="card up" style={{borderRadius:20,padding:"32px",boxShadow:"0 2px 20px rgba(0,0,0,.07)",marginBottom:24}}>
-          <div style={{marginBottom:16}}>
-            <label className="lbl">Dirección del terreno</label>
-            <input className="f" value={dir} onChange={e=>setDir(e.target.value)} disabled={loading} placeholder="Mitla 418, Mitras Norte, Monterrey"/>
-          </div>
-          <div className="row3" style={{marginBottom:16}}>
-            <div><label className="lbl">Superficie m²</label><input className="f" value={m2} onChange={e=>setM2(e.target.value)} placeholder="300" type="number" disabled={loading}/></div>
-            <div><label className="lbl">Precio MXN</label><input className="f" value={px} onChange={e=>setPx(e.target.value)} placeholder="8,000,000" disabled={loading}/></div>
-            <div><label className="lbl">Tipo de análisis</label>
-              <select className="f" value={tipo} onChange={e=>{setTipo(e.target.value as Tipo);setProd("");}} disabled={loading} style={{cursor:"pointer",background:"#fff"}}>
-                <option value="lineamientos">Lineamientos</option>
-                <option value="mercado">Mercado</option>
-                <option value="completo">Análisis completo</option>
-              </select>
-            </div>
-          </div>
-          {needsProduct&&(
-            <div style={{marginBottom:16}}>
-              <label className="lbl">¿Qué quieres construir?</label>
-              <input className="f" value={prod} onChange={e=>setProd(e.target.value)} disabled={loading} placeholder="Ej: departamentos, locales comerciales, oficinas, casas…"/>
-            </div>
-          )}
-          {err&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"10px 14px",color:"#dc2626",fontSize:13,marginBottom:14}}>{err}</div>}
-          <button onClick={()=>run()} disabled={loading}
-            style={{width:"100%",background:loading?"#d4cfc8":"#1a1510",border:"none",borderRadius:12,padding:"15px 0",color:loading?"#7a6f64":"#fff",fontSize:14,fontWeight:600,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,transition:"background .15s"}}>
-            {loading?<><span className="spin"/>{STEPS[step]}</>:"Analizar terreno →"}
-          </button>
-          {loading&&<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:14}}>
-            {STEPS.map((_,i)=><div key={i} className="dot" style={{background:i<=step?"#2563a8":"#E8E2DA",transform:i===step?"scale(1.5)":"scale(1)"}}/>)}
-          </div>}
+      <div className="card up" style={{borderRadius:20,padding:"32px",boxShadow:"0 2px 20px rgba(0,0,0,.07)",marginBottom:24}}>
+        <div style={{marginBottom:16}}>
+          <label className="lbl">Dirección del terreno</label>
+          <input className="f" value={dir} onChange={e=>setDir(e.target.value)} disabled={loading} placeholder="Mitla 418, Mitras Norte, Monterrey"/>
         </div>
-      )}
+        <div className="row3" style={{marginBottom:16}}>
+          <div><label className="lbl">Superficie m²</label><input className="f" value={m2} onChange={e=>setM2(e.target.value)} placeholder="300" type="number" disabled={loading}/></div>
+          <div><label className="lbl">Precio MXN</label><input className="f" value={px} onChange={e=>setPx(e.target.value)} placeholder="8,000,000" disabled={loading}/></div>
+          <div>
+            <label className="lbl">Tipo de análisis</label>
+            <select className="f" value={tipo} onChange={e=>{setTipo(e.target.value as Tipo);setProd("");}} disabled={loading} style={{cursor:"pointer",background:"#fff"}}>
+              <option value="lineamientos">Lineamientos</option>
+              <option value="mercado">+ Mercado</option>
+              <option value="completo">Análisis completo</option>
+            </select>
+          </div>
+        </div>
+        {needsProduct&&(
+          <div style={{marginBottom:16}}>
+            <label className="lbl">¿Qué quieres construir?</label>
+            <input className="f" value={prod} onChange={e=>setProd(e.target.value)} disabled={loading} placeholder="Ej: departamentos, locales comerciales, oficinas, casas…"/>
+          </div>
+        )}
+        {err&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"10px 14px",color:"#dc2626",fontSize:13,marginBottom:14}}>{err}</div>}
+        <button onClick={run} disabled={loading}
+          style={{width:"100%",background:loading?"#d4cfc8":"#1a1510",border:"none",borderRadius:12,padding:"15px 0",color:loading?"#7a6f64":"#fff",fontSize:14,fontWeight:600,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,transition:"background .15s"}}>
+          {loading?<><span className="spin"/>{STEPS[step]}</>:"Analizar terreno →"}
+        </button>
+        {loading&&<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:14}}>
+          {STEPS.map((_,i)=><div key={i} className="dot" style={{background:i<=step?"#2563a8":"#E8E2DA",transform:i===step?"scale(1.5)":"scale(1)"}}/>)}
+        </div>}
+      </div>
 
       {/* RESULTADO */}
       {res&&!loading&&(
@@ -139,7 +148,7 @@ export default function Page() {
           {/* Header */}
           <div className="card" style={{borderRadius:20,padding:"28px 32px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:14}}>
             <div>
-              <div className="lbl">Resultado</div>
+              <div className="lbl">Resultado · {res.tipo_analisis === "lineamientos" ? "Lineamientos" : res.tipo_analisis === "mercado" ? "Estudio de Mercado" : "Análisis Completo"}</div>
               <div className="serif" style={{fontSize:28,color:"#1a1510",lineHeight:1.1,marginBottom:5}}>
                 {res.ubicacion.distrito}<span style={{color:"#b0a898"}}>, </span>{res.ubicacion.delegacion}
               </div>
@@ -158,7 +167,7 @@ export default function Page() {
             {[
               {l:"Zona",v:`${res.ubicacion.zona} · ${res.ubicacion.densidad}`},
               {l:"Precio / m²",v:fmt(res.terreno.precio_m2)},
-              {l:"M² construibles",v:res.lineamientos?.m2_construibles?`${res.lineamientos.m2_construibles.toLocaleString()} m²`:(res.lineamientos?.cus==="Libre"?"Libre/Dictamen":"—")},
+              {l:"M² construibles",v:res.lineamientos?.m2_construibles?`${res.lineamientos.m2_construibles.toLocaleString()} m²`:(res.lineamientos?.cus==="Libre"?"Libre":"—")},
               {l:"Altura máx",v:res.lineamientos?.altura_max||"—"},
             ].map(k=>(
               <div key={k.l} style={{background:"#fff",border:"1px solid #EAE5DF",borderRadius:12,padding:"16px 18px",boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
@@ -174,13 +183,13 @@ export default function Page() {
               <div className="lbl">Lineamientos Urbanísticos — PDU Monterrey 2013-2025</div>
               <div className="lgrid" style={{marginTop:8}}>
                 {[
-                  {l:"COS",v:res.lineamientos.cos,s:"Coeficiente Ocupación"},
-                  {l:"CUS",v:res.lineamientos.cus,s:"Coeficiente Utilización"},
-                  {l:"CAV",v:res.lineamientos.cav,s:"Coeficiente Área Verde"},
+                  {l:"COS",v:res.lineamientos.cos,s:"Coef. Ocupación Suelo"},
+                  {l:"CUS",v:res.lineamientos.cus,s:"Coef. Utilización Suelo"},
+                  {l:"CAV",v:res.lineamientos.cav,s:"Coef. Área Verde"},
                   {l:"Huella máx",v:res.lineamientos.huella_max_m2?`${res.lineamientos.huella_max_m2} m²`:"—",s:""},
                   {l:"M² construibles",v:res.lineamientos.m2_construibles?`${res.lineamientos.m2_construibles.toLocaleString()} m²`:(res.lineamientos.cus==="Libre"?"Libre":"—"),s:""},
                   {l:"Área verde mín",v:res.lineamientos.area_verde_min_m2?`${res.lineamientos.area_verde_min_m2} m²`:"—",s:""},
-                  {l:"Densidad máx",v:res.lineamientos.densidad_max_viv_ha?`${res.lineamientos.densidad_max_viv_ha} viv/Ha`:(res.lineamientos.densidad_viv_ha?`${res.lineamientos.densidad_viv_ha} viv/Ha`:"—"),s:""},
+                  {l:"Densidad máx",v:res.lineamientos.densidad_max_viv_ha&&res.lineamientos.densidad_max_viv_ha!=="N/D"?`${res.lineamientos.densidad_max_viv_ha} viv/Ha`:"—",s:""},
                   {l:"Altura máxima",v:res.lineamientos.altura_max||"—",s:""},
                 ].map(k=>(
                   <div key={k.l}>
@@ -193,12 +202,12 @@ export default function Page() {
             </div>
           )}
 
-          {/* Giros permitidos */}
+          {/* Giros */}
           {res.giros?.permitidos?.length>0&&(
             <div className="card">
               <div className="lbl">Giros Permitidos ({res.giros.total_permitidos}) · Condicionados ({res.giros.total_condicionados})</div>
               <div style={{maxHeight:220,overflowY:"auto",marginTop:8}}>
-                {res.giros.permitidos.slice(0,40).map((g:string,i:number)=>(
+                {res.giros.permitidos.map((g:string,i:number)=>(
                   <div key={i} className="giro">
                     <span style={{color:"#15803d",fontWeight:700,marginRight:8}}>P</span>{g.split("—")[1]||g}
                   </div>
@@ -212,30 +221,26 @@ export default function Page() {
             </div>
           )}
 
-          {/* Análisis de mercado */}
-          {res.analisis?.mercado_producto&&(
+          {/* Resumen ejecutivo (completo) */}
+          {res.analisis?.resumen_ejecutivo&&(
             <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:16,padding:"24px 28px"}}>
-              <div className="lbl" style={{color:"#1d4ed8"}}>Estudio de Mercado — {res.analisis.mercado_producto.tipo}</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:18,marginTop:8}}>
-                {[
-                  {l:"Precio venta m²",v:`${fmt(res.analisis.mercado_producto.precio_venta_m2_min)}–${fmt(res.analisis.mercado_producto.precio_venta_m2_max)}`},
-                  {l:"Precio promedio m²",v:fmt(res.analisis.mercado_producto.precio_venta_m2_promedio)},
-                  {l:"Renta mensual m²",v:fmt(res.analisis.mercado_producto.precio_renta_mensual_m2)},
-                  {l:"Absorción estimada",v:`${res.analisis.mercado_producto.absorcion_estimada_meses} meses`},
-                  {l:"Demanda",v:res.analisis.mercado_producto.demanda},
-                  {l:"Tendencia",v:res.analisis.mercado_producto.tendencia},
-                ].map(k=>(
-                  <div key={k.l}>
-                    <div style={{fontSize:10,fontWeight:700,color:"#1e40af",letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>{k.l}</div>
-                    <div style={{fontSize:15,fontWeight:700,color:"#1e3a5f"}}>{k.v}</div>
-                  </div>
-                ))}
-              </div>
-              {res.analisis.mercado_producto.proyectos_competencia?.length>0&&(
-                <div style={{marginTop:16}}>
-                  <div style={{fontSize:10,fontWeight:700,color:"#1e40af",letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Competencia</div>
-                  {res.analisis.mercado_producto.proyectos_competencia.map((p:string,i:number)=>(
-                    <div key={i} style={{fontSize:13,color:"#1e3a5f",padding:"4px 0",borderBottom:"1px solid #BFDBFE"}}>{p}</div>
+              <div className="lbl" style={{color:"#1d4ed8"}}>Resumen Ejecutivo</div>
+              <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f",margin:"8px 0 0"}}>{res.analisis.resumen_ejecutivo}</p>
+            </div>
+          )}
+
+          {/* Entorno y urbanismo (completo) */}
+          {res.analisis?.entorno_y_urbanismo&&(
+            <div className="card">
+              <div className="lbl">Entorno y Urbanismo</div>
+              <p style={{fontSize:14,lineHeight:1.7,color:"#3a3228",margin:"8px 0 0"}}>{res.analisis.entorno_y_urbanismo.descripcion_zona}</p>
+              {res.analisis.entorno_y_urbanismo.conectividad&&(
+                <p style={{fontSize:13,color:"#7a6f64",marginTop:10,lineHeight:1.6}}>{res.analisis.entorno_y_urbanismo.conectividad}</p>
+              )}
+              {res.analisis.entorno_y_urbanismo.servicios_cercanos?.length>0&&(
+                <div style={{marginTop:12}}>
+                  {res.analisis.entorno_y_urbanismo.servicios_cercanos.map((s:string,i:number)=>(
+                    <span className="pill" key={i}>{s}</span>
                   ))}
                 </div>
               )}
@@ -243,18 +248,18 @@ export default function Page() {
           )}
 
           {/* Precio terreno vs mercado */}
-          {res.analisis?.precio_terreno_mercado&&(
-            <div style={{background:"#fff",border:"1px solid #EAE5DF",borderRadius:16,padding:"24px 28px"}}>
+          {precioTerreno&&(
+            <div className="card">
               <div className="lbl">Precio Terreno vs Mercado</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:18,marginTop:8}}>
+              <div className="mgrid" style={{marginTop:8}}>
                 {[
-                  {l:"Mercado (promedio)",v:fmt(res.analisis.precio_terreno_mercado.promedio_m2)+"/m²"},
-                  {l:"Precio pedido",v:fmt(res.terreno.precio_m2)+"/m²"},
-                  {l:"Evaluación",v:res.analisis.precio_terreno_mercado.evaluacion_precio?.toUpperCase()},
-                  {l:"Diferencia",v:`${res.analisis.precio_terreno_mercado.porcentaje_diferencia>0?"+":""}${res.analisis.precio_terreno_mercado.porcentaje_diferencia}%`},
+                  {l:"Promedio zona",v:`${fmt(precioTerreno.promedio_m2)}/m²`},
+                  {l:"Precio pedido",v:`${fmt(res.terreno.precio_m2)}/m²`},
+                  {l:"Evaluación",v:(precioTerreno.evaluacion_precio||"").toUpperCase()},
+                  {l:"Diferencia",v:`${precioTerreno.porcentaje_diferencia>0?"+":""}${precioTerreno.porcentaje_diferencia}%`},
                 ].map(k=>(
                   <div key={k.l}>
-                    <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase",marginBottom:4}}>{k.l}</div>
+                    <div className="lbl">{k.l}</div>
                     <div style={{fontSize:15,fontWeight:700,color:"#1a1510"}}>{k.v||"—"}</div>
                   </div>
                 ))}
@@ -262,20 +267,88 @@ export default function Page() {
             </div>
           )}
 
-          {/* Entorno (completo) */}
-          {res.analisis?.entorno_y_urbanismo&&(
-            <div className="card">
-              <div className="lbl">Entorno y Urbanismo</div>
-              <p style={{fontSize:14,lineHeight:1.7,color:"#3a3228",marginTop:8}}>{res.analisis.entorno_y_urbanismo.descripcion_zona}</p>
-              {res.analisis.entorno_y_urbanismo.conectividad&&<p style={{fontSize:13,color:"#7a6f64",marginTop:8,lineHeight:1.6}}>{res.analisis.entorno_y_urbanismo.conectividad}</p>}
+          {/* Estudio de mercado del producto */}
+          {mercadoProd&&(
+            <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:16,padding:"24px 28px"}}>
+              <div className="lbl" style={{color:"#1d4ed8"}}>
+                Mercado — {mercadoProd.tipo||res.analisis?.producto_compatible&&"Producto deseado"}
+              </div>
+              <div className="mgrid" style={{marginTop:8}}>
+                {[
+                  {l:"Precio venta m²",v:`${fmt(mercadoProd.precio_venta_m2_min||mercadoProd.precio_venta_producto_m2)}–${fmt(mercadoProd.precio_venta_m2_max||mercadoProd.precio_venta_producto_m2)}`},
+                  {l:"Promedio m²",v:fmt(mercadoProd.precio_venta_m2_promedio||mercadoProd.precio_venta_producto_m2)},
+                  {l:"Renta / m² / mes",v:fmt(mercadoProd.precio_renta_mensual_m2||mercadoProd.precio_renta_producto_m2_mes)},
+                  {l:"Absorción",v:`${mercadoProd.absorcion_estimada_meses||mercadoProd.absorcion_meses} meses`},
+                  {l:"Demanda",v:(mercadoProd.demanda||"").toUpperCase()},
+                  {l:"Tendencia",v:(mercadoProd.tendencia||"").toUpperCase()},
+                ].map(k=>(
+                  <div key={k.l}>
+                    <div className="lbl" style={{color:"#1e40af"}}>{k.l}</div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#1e3a5f"}}>{k.v||"—"}</div>
+                  </div>
+                ))}
+              </div>
+              {(mercadoProd.proyectos_competencia||mercadoProd.competencia)&&(
+                <div style={{marginTop:16}}>
+                  <div className="lbl" style={{color:"#1e40af"}}>Competencia</div>
+                  {Array.isArray(mercadoProd.proyectos_competencia)
+                    ? mercadoProd.proyectos_competencia.map((p:string,i:number)=>(
+                        <div key={i} style={{fontSize:13,color:"#1e3a5f",padding:"5px 0",borderBottom:"1px solid #BFDBFE"}}>{p}</div>
+                      ))
+                    : <div style={{fontSize:13,color:"#1e3a5f",marginTop:6,lineHeight:1.6}}>{mercadoProd.competencia}</div>
+                  }
+                </div>
+              )}
             </div>
           )}
 
-          {/* Financiero */}
+          {/* Potencial proyecto */}
+          {res.analisis?.potencial_proyecto&&(
+            <div className="card">
+              <div className="lbl">Potencial del Proyecto</div>
+              <div className="mgrid" style={{marginTop:8}}>
+                {[
+                  {l:"Unidades estimadas",v:`${res.analisis.potencial_proyecto.unidades_estimadas} unidades`},
+                  {l:"M² por unidad",v:`${res.analisis.potencial_proyecto.m2_por_unidad} m²`},
+                  {l:"Ingreso venta est.",v:fmt(res.analisis.potencial_proyecto.ingreso_venta_estimado)},
+                  {l:"Ingreso renta anual",v:fmt(res.analisis.potencial_proyecto.ingreso_renta_estimado_anual)},
+                ].map(k=>(
+                  <div key={k.l}>
+                    <div className="lbl">{k.l}</div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#1a1510"}}>{k.v}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Viabilidad técnica (completo) */}
+          {res.analisis?.viabilidad_tecnica&&(
+            <div className="card">
+              <div className="lbl">Viabilidad Técnica</div>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,marginTop:8}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:res.analisis.viabilidad_tecnica.producto_compatible?"#15803d":"#dc2626"}}/>
+                <span style={{fontSize:14,fontWeight:600,color:res.analisis.viabilidad_tecnica.producto_compatible?"#15803d":"#dc2626"}}>
+                  {res.analisis.viabilidad_tecnica.producto_compatible?"Producto compatible con la zona":"Producto NO compatible"}
+                </span>
+              </div>
+              <p style={{fontSize:13,color:"#3a3228",lineHeight:1.6,marginBottom:12}}>{res.analisis.viabilidad_tecnica.motivo}</p>
+              {res.analisis.viabilidad_tecnica.retos_constructivos?.length>0&&(
+                <div>
+                  <div className="lbl">Retos constructivos</div>
+                  {res.analisis.viabilidad_tecnica.retos_constructivos.map((r:string,i:number)=>(
+                    <div key={i} style={{fontSize:13,color:"#7a6f64",padding:"4px 0",borderBottom:"1px solid #F0EBE5"}}>· {r}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Financiero (completo) */}
           {res.analisis?.financiero&&(
             <div className="card">
               <div className="lbl">Análisis Financiero</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:22,marginTop:8}}>
+              <div className="fgrid" style={{marginTop:8}}>
                 {[
                   {l:"Precio terreno",v:fmt(res.analisis.financiero.precio_terreno)},
                   {l:"Costo construcción",v:fmt(res.analisis.financiero.costo_construccion_total)},
@@ -288,7 +361,7 @@ export default function Page() {
                   {l:"Plazo",v:`${res.analisis.financiero.plazo_meses} meses`},
                 ].map(k=>(
                   <div key={k.l}>
-                    <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase",marginBottom:5}}>{k.l}</div>
+                    <div className="lbl">{k.l}</div>
                     <div style={{fontSize:18,fontWeight:700,color:"#1a1510",letterSpacing:"-.02em"}}>{k.v||"—"}</div>
                   </div>
                 ))}
@@ -320,17 +393,15 @@ export default function Page() {
             </div>
           )}
 
-          {/* Recomendación / justificación semáforo */}
-          {(res.analisis?.recomendacion||res.analisis?.justificacion_semaforo)&&(
+          {/* Recomendación (mercado) */}
+          {res.analisis?.recomendacion&&(
             <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:16,padding:"24px 28px"}}>
               <div className="lbl" style={{color:"#1d4ed8"}}>Recomendación</div>
-              <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f",margin:0,marginTop:8}}>
-                {res.analisis.recomendacion||res.analisis.justificacion_semaforo}
-              </p>
+              <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f",margin:"8px 0 0"}}>{res.analisis.recomendacion}</p>
             </div>
           )}
 
-          {/* Veredicto */}
+          {/* Veredicto (completo) */}
           {res.analisis?.veredicto&&(
             <div style={{background:"#fff",border:`2px solid ${semCol}`,borderRadius:16,padding:"28px 32px",boxShadow:`0 0 0 4px ${semCol}10`}}>
               <div className="lbl">Veredicto</div>
@@ -353,7 +424,7 @@ export default function Page() {
           )}
 
           <button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");}}
-            style={{background:"transparent",border:"1.5px solid #E8E2DA",borderRadius:10,padding:"11px 0",color:"#9a8f84",fontSize:13,cursor:"pointer",fontWeight:500,width:"100%"}}
+            style={{background:"transparent",border:"1.5px solid #E8E2DA",borderRadius:10,padding:"11px 0",color:"#9a8f84",fontSize:13,cursor:"pointer",fontWeight:500,width:"100%",marginTop:4}}
             onMouseOver={e=>(e.currentTarget.style.background="#F5F2EE")}
             onMouseOut={e=>(e.currentTarget.style.background="transparent")}>
             ← Nuevo análisis
