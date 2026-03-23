@@ -202,12 +202,32 @@ export default function Page(){
 
   const sem=res?.analisis?.semaforo;
   const semCol=sem==="VERDE"?"#15803d":sem==="AMARILLO"?"#d97706":sem==="ROJO"?"#dc2626":null;
-  const mp=res?.analisis?.mercado_producto||res?.analisis?.mercado;
-  const pt=res?.analisis?.precio_terreno_mercado||(res?.analisis?.mercado?{
-    promedio_m2:res.analisis.mercado.precio_terreno_mercado_m2_promedio,
-    evaluacion_precio:res.analisis.mercado.evaluacion_precio_terreno,
-    porcentaje_diferencia:res.analisis.mercado.porcentaje_sobre_mercado,
-  }:null);
+
+  // Normalize market data — handles both "mercado" and "completo" response shapes
+  const rawMp = res?.analisis?.mercado_producto || res?.analisis?.mercado || null;
+  const mp = rawMp ? {
+    tipo:                    rawMp.tipo || prod,
+    precio_venta_m2_min:     rawMp.precio_venta_m2_min    || rawMp.precio_venta_producto_m2 || 0,
+    precio_venta_m2_max:     rawMp.precio_venta_m2_max    || rawMp.precio_venta_producto_m2 || 0,
+    precio_venta_m2_promedio:rawMp.precio_venta_m2_promedio || rawMp.precio_venta_producto_m2 || 0,
+    precio_renta_mensual_m2: rawMp.precio_renta_mensual_m2 || rawMp.precio_renta_m2_mes || rawMp.precio_renta_producto_m2_mes || 0,
+    m2_promedio_unidad:      rawMp.m2_promedio_unidad || 0,
+    absorcion_estimada_meses:rawMp.absorcion_estimada_meses || rawMp.absorcion_meses || 0,
+    demanda:    rawMp.demanda  || "",
+    tendencia:  rawMp.tendencia|| "",
+    proyectos_competencia: (rawMp.proyectos_competencia||[])
+      .map((p:any)=>typeof p==="string"?{nombre:p,precio_desde:0,precio_hasta:0,m2_min:0,m2_max:0}:p),
+    tipologias: rawMp.tipologias || [],
+  } : null;
+
+  // Normalize precio terreno
+  const rawPt = res?.analisis?.precio_terreno_mercado || null;
+  const rawM  = res?.analisis?.mercado || null;
+  const pt = rawPt ? rawPt : rawM ? {
+    promedio_m2:          rawM.precio_terreno_mercado_m2_promedio || 0,
+    evaluacion_precio:    rawM.evaluacion_precio_terreno || "",
+    porcentaje_diferencia:rawM.porcentaje_sobre_mercado || 0,
+  } : null;
 
   // Recalc financials from raw numbers
   const fin=res?.analisis?.financiero;
@@ -227,16 +247,16 @@ export default function Page(){
   const unidadesMax=densVivHa>0?Math.floor(densVivHa*(m2Terreno/10000)):null;
 
   // Extract market data
-  const mpData = mp || res?.analisis?.potencial_proyecto ? {
+  const rawPot = res?.analisis?.potencial_proyecto || null;
+  const mpData = (mp || rawPot || fin) ? {
     ...mp,
-    unidades: res?.analisis?.potencial_proyecto?.unidades_pdu || unidadesMax || 0,
-    m2_unit:  res?.analisis?.potencial_proyecto?.m2_promedio_unidad || mp?.m2_promedio_unidad || 0,
-    pxm2:     res?.analisis?.potencial_proyecto?.precio_venta_m2_promedio || mp?.precio_venta_m2_promedio || 0,
-    ing_calc: res?.analisis?.potencial_proyecto?.calculo_detalle || "",
-    ing_total:res?.analisis?.potencial_proyecto?.ingreso_total_venta || 0,
-    competencia: (mp?.proyectos_competencia||res?.analisis?.mercado?.proyectos_competencia||[])
-      .map((p:any)=>typeof p==="string"?{nombre:p,precio_desde:0,precio_hasta:0,m2_min:0,m2_max:0}:p),
-    tipologias: mp?.tipologias || res?.analisis?.mercado?.tipologias || [],
+    unidades: rawPot?.unidades_pdu || unidadesMax || 0,
+    m2_unit:  rawPot?.m2_promedio_unidad || mp?.m2_promedio_unidad || fin?.m2_promedio_unidad || 0,
+    pxm2:     rawPot?.precio_venta_m2_promedio || mp?.precio_venta_m2_promedio || fin?.precio_venta_m2_promedio || 0,
+    ing_calc: rawPot?.calculo_detalle || fin?.calculo_ingresos || "",
+    ing_total:rawPot?.ingreso_total_venta || fin?.ingreso_total_estimado || 0,
+    competencia: mp?.proyectos_competencia || [],
+    tipologias:  mp?.tipologias || [],
   } : null;
 
   const C={bg:"#F5F2EE",white:"#fff",dark:"#1a1510",blue:BLUE,border:"#EAE5DF",mid:"#7a6f64",light:"#a09888",vl:"#c0b8ae"};
