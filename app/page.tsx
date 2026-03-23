@@ -179,6 +179,7 @@ function ScatterChart({points,h=200}:{points:{x:number;y:number;label:string;siz
 ══════════════════════════════════════════════════════ */
 export default function Page(){
   const [dir,setDir]=useState(""); const [m2,setM2]=useState(""); const [px,setPx]=useState("");
+  const [frente,setFrente]=useState(""); const [fondo,setFondo]=useState("");
   const [tipo,setTipo]=useState<Tipo>("lineamientos"); const [prod,setProd]=useState("");
   const [step,setStep]=useState(0); const [loading,setLoading]=useState(false);
   const [res,setRes]=useState<any>(null); const [err,setErr]=useState("");
@@ -192,9 +193,17 @@ export default function Page(){
     try{
       const body:any={direccion:dir,metros2:parseFloat(m2),precio:parseFloat(px.replace(/,/g,"")),tipo_analisis:tipo};
       if(prod)body.producto_deseado=prod;
+      if(frente)body.frente_m=parseFloat(frente);
+      if(fondo)body.fondo_m=parseFloat(fondo);
       const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${KEY}`},body:JSON.stringify(body)});
       const d=await r.json();
       if(d.necesita_producto){setErr("Indica qué quieres construir.");setLoading(false);return;}
+      if(d.error_uso_suelo){
+        // Show HU warning with lineamientos data if available
+        if(d.lineamientos) setRes({...d, ok:true, tipo_analisis:"error_uso_suelo", tipo_analisis_real: tipo});
+        else setErr(d.error);
+        setLoading(false);return;
+      }
       if(d.ok)setRes(d); else setErr(d.error||"Error inesperado.");
     }catch{setErr("Error de conexión.");}
     finally{setLoading(false);}
@@ -467,7 +476,7 @@ export default function Page(){
                 {l:"Unidades PDU",v:`${unidadesMax||mpData.unidades} unidades`,s:"densidad × m²/10,000"},
                 {l:"Tamaño promedio",v:mpData.m2_unit||mpData.m2_promedio_unidad?`${mpData.m2_unit||mpData.m2_promedio_unidad} m²/unidad`:"—",s:"del mercado"},
                 {l:"Precio prom /m²",v:mpData.pxm2||mpData.precio_venta_m2_promedio?$(mpData.pxm2||mpData.precio_venta_m2_promedio):"—",s:"del mercado"},
-                {l:"Ingresos venta est.",v:mpData.ing_total||res.analisis?.potencial_proyecto?.ingreso_total_venta?$(mpData.ing_total||res.analisis.potencial_proyecto.ingreso_total_venta):"—",s:mpData.ing_calc||"unidades × m²/unidad × $/m²"},
+                {l:"Ingresos venta est.",v:(()=>{const t=mpData.ing_total>0?mpData.ing_total:((unidadesMax||mpData.unidades||0)*(mpData.m2_unit||mpData.m2_promedio_unidad||0)*(mpData.pxm2||mpData.precio_venta_m2_promedio||0));return t>0?$(t):"—";})(),s:mpData.ing_calc||`${unidadesMax||mpData.unidades||0} unidades × ${mpData.m2_unit||mpData.m2_promedio_unidad||0}m² × ${$(mpData.pxm2||mpData.precio_venta_m2_promedio||0)}/m²`},
               ].map(k=>(
                 <div key={k.l}>
                   <div style={{fontSize:10,fontWeight:700,color:"#1e40af",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
@@ -542,43 +551,179 @@ export default function Page(){
       @keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
       .up{animation:up .3s ease forwards;}
       .sec-hdr{border-left:3px solid;padding-left:14px;margin-bottom:14px;}
+      /* Glass form inputs */
+      .fg{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff;outline:none;transition:border .2s,background .2s;font-family:inherit;}
+      .fg::placeholder{color:rgba(180,210,240,.35);}
+      .fg:focus{border-color:rgba(94,168,240,.7);background:rgba(255,255,255,.12);box-shadow:0 0 0 3px rgba(37,99,168,.2);}
+      .fg option{background:#0f2240;color:#fff;}
+      @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
     `}</style>
 
-    {/* NAV */}
+    {/* ════════════════════════════════════════════
+        HERO — full viewport glassmorphism landing
+        Only shown when there's no result yet
+    ════════════════════════════════════════════ */}
+    {!res&&!loading&&(
+      <div style={{position:"relative",minHeight:"100vh",overflow:"hidden",display:"flex",flexDirection:"column" as const}}>
+        {/* MAP BACKGROUND — SVG grid simulating urban map */}
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg, #0a1628 0%, #0f2240 40%, #0d2d3a 70%, #0a1e28 100%)"}}>
+          {/* Grid lines */}
+          <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.18}} xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#4a9ebb" strokeWidth=".6"/>
+              </pattern>
+              <pattern id="grid2" width="300" height="300" patternUnits="userSpaceOnUse">
+                <path d="M 300 0 L 0 0 0 300" fill="none" stroke="#4a9ebb" strokeWidth="1.2"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)"/>
+            <rect width="100%" height="100%" fill="url(#grid2)"/>
+            {/* Simulated streets */}
+            <line x1="0" y1="38%" x2="100%" y2="35%" stroke="#5bb8d4" strokeWidth="1.5" opacity=".5"/>
+            <line x1="0" y1="62%" x2="100%" y2="65%" stroke="#5bb8d4" strokeWidth="1" opacity=".4"/>
+            <line x1="0" y1="78%" x2="100%" y2="80%" stroke="#5bb8d4" strokeWidth=".8" opacity=".3"/>
+            <line x1="22%" y1="0" x2="18%" y2="100%" stroke="#5bb8d4" strokeWidth="1.5" opacity=".5"/>
+            <line x1="55%" y1="0" x2="52%" y2="100%" stroke="#5bb8d4" strokeWidth="1" opacity=".4"/>
+            <line x1="78%" y1="0" x2="80%" y2="100%" stroke="#5bb8d4" strokeWidth=".8" opacity=".3"/>
+            {/* City blocks */}
+            <rect x="24%" y="20%" width="8%" height="12%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
+            <rect x="35%" y="25%" width="5%" height="8%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".25"/>
+            <rect x="58%" y="42%" width="10%" height="14%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
+            <rect x="15%" y="55%" width="6%" height="9%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".25"/>
+            <rect x="70%" y="20%" width="7%" height="10%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
+          </svg>
+          {/* Glow blobs */}
+          <div style={{position:"absolute",top:"20%",left:"30%",width:400,height:400,background:"radial-gradient(circle, rgba(37,99,168,.25) 0%, transparent 70%)",transform:"translate(-50%,-50%)"}}/>
+          <div style={{position:"absolute",bottom:"25%",right:"25%",width:300,height:300,background:"radial-gradient(circle, rgba(20,120,140,.2) 0%, transparent 70%)"}}/>
+        </div>
+
+
+
+        {/* NAV over map */}
+        <nav style={{position:"relative",zIndex:10,padding:"20px 32px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          {/* Logo real */}
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <img src="/LOGO_SIMBOLO.svg" alt="unearth" style={{width:34,height:34,objectFit:"contain",filter:"brightness(0) invert(1)"}}/>
+            <img src="/LOGO_LETRAS.svg" alt="unearth" style={{height:22,objectFit:"contain",filter:"brightness(0) invert(1)"}}/>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px"}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
+            <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.7)",letterSpacing:".07em"}}>LIVE DATA</span>
+          </div>
+        </nav>
+
+        {/* Center content */}
+        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 60px",position:"relative",zIndex:10}}>
+          {/* Logo real grande */}
+          <div style={{marginBottom:8,position:"relative"}}>
+            <img src="/LOGO_SIMBOLO.svg" alt="unearth" style={{width:100,height:100,objectFit:"contain",filter:"brightness(0) invert(1) drop-shadow(0 0 24px rgba(94,168,240,.7))"}}/>
+          </div>
+
+          <div style={{marginBottom:16,display:"flex",justifyContent:"center"}}>
+            <img src="/LOGO_LETRAS.svg" alt="unearth" style={{height:64,objectFit:"contain",filter:"brightness(0) invert(1)"}}/>
+          </div>
+          <h2 style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(28px,4vw,52px)",lineHeight:1.1,color:"#fff",marginBottom:16,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
+            Unearth your next<br/><em style={{color:"#5ea8f0",fontStyle:"italic"}}>development.</em>
+          </h2>
+          <p style={{fontSize:16,color:"rgba(200,220,240,.7)",lineHeight:1.7,maxWidth:400,margin:"0 auto 40px",textAlign:"center" as const}}>
+            Dirección, metros y precio — análisis de zonificación, mercado y financiero en segundos.
+          </p>
+
+          {/* GLASSMORPHISM FORM */}
+          <div style={{
+            width:"100%",maxWidth:680,
+            background:"rgba(255,255,255,.07)",
+            backdropFilter:"blur(24px)",
+            WebkitBackdropFilter:"blur(24px)",
+            border:"1px solid rgba(255,255,255,.15)",
+            borderRadius:20,
+            padding:"28px 32px",
+            boxShadow:"0 8px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.1)",
+          }}>
+            <div className="g3" style={{marginBottom:14}}>
+              <div style={{gridColumn:"1/-1"}}>
+                <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>Dirección del terreno</label>
+                <input className="fg" value={dir} onChange={e=>setDir(e.target.value)} disabled={loading} placeholder="Ej: Mitla 418, Mitras Norte, Monterrey"/>
+              </div>
+              <div>
+                <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>Superficie m²</label>
+                <input className="fg" value={m2} onChange={e=>setM2(e.target.value)} disabled={loading} placeholder="300" type="number"/>
+              </div>
+              <div>
+                <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>Precio MXN</label>
+                <input className="fg" value={px} onChange={e=>setPx(e.target.value)} disabled={loading} placeholder="8,000,000"/>
+              </div>
+              <div>
+                <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>Tipo de análisis</label>
+                <select className="fg" value={tipo} onChange={e=>{setTipo(e.target.value as Tipo);setProd("");}} disabled={loading} style={{cursor:"pointer"}}>
+                  <option value="lineamientos">Lineamientos urbanísticos</option>
+                  <option value="mercado">Estudio de mercado</option>
+                  <option value="completo">Análisis completo</option>
+                </select>
+              </div>
+            </div>
+            {needsProd&&(
+              <div style={{marginBottom:14}}>
+                <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>¿Qué quieres construir?</label>
+                <input className="fg" value={prod} onChange={e=>setProd(e.target.value)} disabled={loading} placeholder="departamentos, casas, locales comerciales, oficinas…"/>
+              </div>
+            )}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+              <div>
+                <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>
+                  Frente (m) <span style={{color:"rgba(150,180,210,.4)",fontWeight:400}}>opcional</span>
+                </label>
+                <input className="fg" value={frente} onChange={e=>setFrente(e.target.value)} disabled={loading} placeholder="Ej: 10" type="number"/>
+              </div>
+              <div>
+                <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>
+                  Fondo (m) <span style={{color:"rgba(150,180,210,.4)",fontWeight:400}}>opcional</span>
+                </label>
+                <input className="fg" value={fondo} onChange={e=>setFondo(e.target.value)} disabled={loading} placeholder="Ej: 30" type="number"/>
+              </div>
+            </div>
+            {err&&<div style={{background:"rgba(239,68,68,.15)",border:"1px solid rgba(239,68,68,.3)",borderRadius:10,padding:"10px 14px",color:"#fca5a5",fontSize:13,marginBottom:12}}>{err}</div>}
+            <button onClick={run} disabled={loading} style={{
+              width:"100%",
+              background:loading?"rgba(255,255,255,.1)":"linear-gradient(135deg, #1a4d8a 0%, #2563a8 50%, #1a7a8a 100%)",
+              border:"none",borderRadius:12,padding:"15px 0",
+              color:"#fff",fontSize:14,fontWeight:700,cursor:loading?"not-allowed":"pointer",
+              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+              boxShadow:loading?"none":"0 4px 20px rgba(37,99,168,.5)",
+              letterSpacing:".02em",transition:"all .2s",
+            }}>
+              {loading
+                ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>{STEPS[step]}</>
+                :"Generar reporte de factibilidad →"}
+            </button>
+            {loading&&<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:14}}>
+              {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?"#5ea8f0":"rgba(255,255,255,.2)",transform:i===step?"scale(1.5)":"scale(1)",transition:"all .3s"}}/>)}
+            </div>}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ══════════════════════════════════════════
+        RESULTS PAGE — shown when there's a result
+        Keeps its own nav + white bg layout
+    ══════════════════════════════════════════ */}
+    {(res||loading)&&(<>
+    {/* NAV — compact when showing results */}
     <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 32px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
-          <rect width="36" height="36" rx="9" fill="#DBEAFE"/>
-          <path d="M18 8L28 26H8Z" fill="none" stroke={BLUE} strokeWidth="2.2" strokeLinejoin="round"/>
-          <path d="M13 26Q18 16 23 26" fill="none" stroke={BLUE} strokeWidth="1.6" strokeLinecap="round"/>
-          <line x1="18" y1="20" x2="18" y2="26" stroke={BLUE} strokeWidth="1.6" strokeLinecap="round"/>
-        </svg>
-        <span style={{fontSize:16,fontWeight:600,letterSpacing:"-.03em"}}>un<span style={{color:BLUE}}>earth</span></span>
+      <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <img src="/LOGO_SIMBOLO.svg" alt="unearth" style={{width:28,height:28,objectFit:"contain"}}/>
+        <img src="/LOGO_LETRAS.svg" alt="unearth" style={{height:18,objectFit:"contain"}}/>
       </div>
       <span style={{fontSize:11,fontWeight:500,color:"#c0b8ae",letterSpacing:".07em"}}>MONTERREY MVP</span>
     </header>
 
     <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 28px 100px",width:"100%"}}>
 
-      {/* HERO */}
-      {!res&&!loading&&(
-        <div style={{textAlign:"center",marginBottom:48}} className="up">
-          <div style={{display:"inline-flex",alignItems:"center",gap:7,background:"#DBEAFE",borderRadius:100,padding:"5px 14px",marginBottom:24}}>
-            <div style={{width:7,height:7,borderRadius:"50%",background:BLUE}}/>
-            <span style={{fontSize:10,fontWeight:700,color:"#1d4ed8",letterSpacing:".08em"}}>PDU MONTERREY 2013–2025 · IA</span>
-          </div>
-          <h1 style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(40px,5.5vw,64px)",lineHeight:1,color:"#1a1510",marginBottom:16,fontWeight:400}}>
-            Unearth your next<br/><em style={{color:BLUE}}>development.</em>
-          </h1>
-          <p style={{fontSize:16,color:"#7a6f64",lineHeight:1.7,maxWidth:420,margin:"0 auto"}}>
-            Dirección, metros y precio — la IA hace el análisis completo.
-          </p>
-        </div>
-      )}
-
-      {/* FORM */}
-      <div className="card up" style={{marginBottom:28,borderRadius:18,padding:"28px 32px",boxShadow:"0 2px 16px rgba(0,0,0,.07)"}}>
-        <div className="g3" style={{marginBottom:14}}>
+      {/* COMPACT FORM */}
+      <div className="card up" style={{marginBottom:28,borderRadius:18,padding:"20px 28px",boxShadow:"0 2px 16px rgba(0,0,0,.07)"}}>
+        <div className="g3" style={{marginBottom:12}}>
           <div style={{gridColumn:"1/-1"}}>
             <label className="lbl">Dirección del terreno</label>
             <input className="f" value={dir} onChange={e=>setDir(e.target.value)} disabled={loading} placeholder="Ej: Mitla 418, Mitras Norte, Monterrey"/>
@@ -595,22 +740,67 @@ export default function Page(){
           </div>
         </div>
         {needsProd&&(
-          <div style={{marginBottom:14}}>
+          <div style={{marginBottom:12}}>
             <label className="lbl">¿Qué quieres construir?</label>
             <input className="f" value={prod} onChange={e=>setProd(e.target.value)} disabled={loading} placeholder="departamentos, casas, locales comerciales, oficinas…"/>
           </div>
         )}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
+          <div>
+            <label className="lbl">Frente (m) <span style={{color:"#c0b8ae",fontWeight:400}}>opcional</span></label>
+            <input className="f" value={frente} onChange={e=>setFrente(e.target.value)} disabled={loading} placeholder="10" type="number"/>
+          </div>
+          <div>
+            <label className="lbl">Fondo (m) <span style={{color:"#c0b8ae",fontWeight:400}}>opcional</span></label>
+            <input className="f" value={fondo} onChange={e=>setFondo(e.target.value)} disabled={loading} placeholder="30" type="number"/>
+          </div>
+        </div>
         {err&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"10px 14px",color:"#dc2626",fontSize:13,marginBottom:12}}>{err}</div>}
         <div style={{display:"flex",gap:10}}>
-          <button onClick={run} disabled={loading} style={{flex:1,background:loading?"#d4cfc8":"#1a1510",border:"none",borderRadius:10,padding:"13px 0",color:loading?"#7a6f64":"#fff",fontSize:14,fontWeight:600,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+          <button onClick={run} disabled={loading} style={{flex:1,background:loading?"#d4cfc8":"#1a1510",border:"none",borderRadius:10,padding:"12px 0",color:loading?"#7a6f64":"#fff",fontSize:14,fontWeight:600,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
             {loading?<><div style={{width:15,height:15,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>{STEPS[step]}</>:"Analizar terreno →"}
           </button>
-          {res&&<button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");}} style={{background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"13px 18px",color:"#7a6f64",fontSize:13,cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>← Nuevo</button>}
+          <button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");setFrente("");setFondo("");}} style={{background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"12px 18px",color:"#7a6f64",fontSize:13,cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>← Nuevo</button>
         </div>
         {loading&&<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:14}}>
           {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?BLUE:"#EAE5DF",transform:i===step?"scale(1.5)":"scale(1)",transition:"all .3s"}}/>)}
         </div>}
       </div>
+
+      {/* ══ ERROR USO DE SUELO HU ══ */}
+      {res&&!loading&&res.tipo_analisis==="error_uso_suelo"&&(
+        <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
+          <Header/>
+          <div style={{background:"#FFF7ED",border:"2px solid #FED7AA",borderRadius:14,padding:"24px 28px"}}>
+            <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+              <div style={{fontSize:24,lineHeight:"1",flexShrink:0}}>⚠️</div>
+              <div>
+                <div style={{fontSize:15,fontWeight:700,color:"#c2410c",marginBottom:8}}>
+                  Producto no compatible con zona HU (Habitacional Unifamiliar)
+                </div>
+                <p style={{fontSize:14,color:"#7c2d12",lineHeight:1.7,marginBottom:16}}>
+                  La zona <strong>HU</strong> solo permite <strong>una vivienda por lote</strong>. No es compatible con departamentos ni multifamiliar vertical.
+                </p>
+                <div style={{background:"#FEF3C7",borderRadius:10,padding:"14px 18px",marginBottom:12}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#b45309",marginBottom:8}}>¿Qué SÍ se puede hacer en HU?</div>
+                  <div style={{fontSize:13,color:"#78350f",lineHeight:1.9}}>
+                    ✓ 1 vivienda unifamiliar<br/>
+                    ✓ Duplex o casa con depto de servicio (condicionado)<br/>
+                    ✓ Multifamiliar horizontal / townhouses — <strong>requiere verificación directa con Desarrollo Urbano Sostenible de Monterrey</strong>
+                  </div>
+                </div>
+                <div style={{background:"#DBEAFE",borderRadius:10,padding:"14px 18px"}}>
+                  <div style={{fontSize:12,fontWeight:700,color:"#1d4ed8",marginBottom:6}}>Para departamentos busca zonas:</div>
+                  <div style={{fontSize:13,color:"#1e3a5f"}}>
+                    <strong>HM</strong> · <strong>HML</strong> · <strong>HMM</strong> · <strong>HMI</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {res.lineamientos&&<><div className="sec-hdr" style={{borderColor:BLUE}}><div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos del terreno (solo referencia)</div></div><LineamientosBlock/></>}
+        </div>
+      )}
 
       {/* ══ LINEAMIENTOS ══ */}
       {res&&!loading&&res.tipo_analisis==="lineamientos"&&(
@@ -815,10 +1005,10 @@ export default function Page(){
           )}
         </div>
       )}
-    </div>
+    </div></>)}
 
     <footer style={{borderTop:"1px solid #EAE5DF",padding:"18px 32px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#F5F2EE"}}>
-      <span style={{fontSize:14,fontWeight:600,letterSpacing:"-.03em"}}>un<span style={{color:BLUE}}>earth</span></span>
+      <img src="/LOGO_LETRAS.svg" alt="unearth" style={{height:18,objectFit:"contain"}}/>
       <span style={{fontSize:11,color:"#c0b8ae",letterSpacing:".04em"}}>Monterrey, NL · {new Date().getFullYear()}</span>
     </footer>
   </>);
