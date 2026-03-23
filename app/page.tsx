@@ -8,18 +8,61 @@ type Tipo = "lineamientos"|"mercado"|"completo";
 const $   = (n:any,m="c")=>n!=null&&!isNaN(+n)?(m==="c"?new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(+n):new Intl.NumberFormat("es-MX",{maximumFractionDigits:0}).format(+n)):"—";
 const pct = (n:any)=>n!=null&&!isNaN(+n)?`${(+n).toFixed(1)}%`:"—";
 const STEPS=["Geocodificando…","Buscando zona…","Consultando PDU…","Investigando mercado…","Generando reporte…"];
+const BLUE="#2563a8", AMBER="#d97706", GREEN="#15803d";
 
-/* ── Bar chart ─────────────────────────────────────────── */
-function BarChart({bars,h=190}:{bars:{l:string;v:number;c:string}[];h?:number}){
+/* ══════════════════════════════════════════════════════
+   CHART COMPONENTS
+══════════════════════════════════════════════════════ */
+
+// Horizontal bar chart
+function HBarChart({bars,h=180}:{bars:{l:string;v:number;c:string;max:number}[];h?:number}){
   const ref=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
     const el=ref.current; if(!el) return;
     const ctx=el.getContext("2d"); if(!ctx) return;
     const dpr=window.devicePixelRatio||1;
-    const W=el.parentElement?.clientWidth||500;
+    const W=el.parentElement?.clientWidth||400;
+    const H=Math.max(h,bars.length*44+24);
+    el.width=W*dpr; el.height=H*dpr; el.style.width=W+"px"; el.style.height=H+"px";
+    ctx.scale(dpr,dpr);
+    const lw=120, pad={t:12,r:80,b:12};
+    const bh=26, gap=44;
+    const chartW=W-lw-pad.r;
+    const maxV=Math.max(...bars.map(b=>b.max||b.v),1);
+    ctx.clearRect(0,0,W,H);
+    bars.forEach((b,i)=>{
+      const y=pad.t+i*gap;
+      const bw=(b.v/maxV)*chartW;
+      // Label
+      ctx.font="11px Inter,sans-serif"; ctx.fillStyle="#7a6f64"; ctx.textAlign="right";
+      ctx.fillText(b.l,lw-8,y+bh/2+4);
+      // Bar bg
+      ctx.fillStyle="#F0EBE5"; ctx.beginPath();
+      if(ctx.roundRect)ctx.roundRect(lw,y,chartW,bh,4); else ctx.rect(lw,y,chartW,bh);
+      ctx.fill();
+      // Bar fill
+      ctx.fillStyle=b.c; ctx.beginPath();
+      if(ctx.roundRect)ctx.roundRect(lw,y,bw,bh,4); else ctx.rect(lw,y,bw,bh);
+      ctx.fill();
+      // Value
+      ctx.font="bold 12px Inter,sans-serif"; ctx.fillStyle="#1a1510"; ctx.textAlign="left";
+      ctx.fillText(`$${(b.v/1000).toFixed(0)}k`,lw+bw+8,y+bh/2+4);
+    });
+  },[bars,h]);
+  return <canvas ref={ref}/>;
+}
+
+// Vertical bar chart
+function VBarChart({bars,h=180}:{bars:{l:string;v:number;c:string}[];h?:number}){
+  const ref=useRef<HTMLCanvasElement>(null);
+  useEffect(()=>{
+    const el=ref.current; if(!el) return;
+    const ctx=el.getContext("2d"); if(!ctx) return;
+    const dpr=window.devicePixelRatio||1;
+    const W=el.parentElement?.clientWidth||400;
     el.width=W*dpr; el.height=h*dpr; el.style.width=W+"px"; el.style.height=h+"px";
     ctx.scale(dpr,dpr);
-    const p={t:24,r:10,b:48,l:68};
+    const p={t:24,r:10,b:44,l:64};
     const cW=W-p.l-p.r, cH=h-p.t-p.b;
     const maxV=Math.max(...bars.map(b=>b.v),1);
     const bw=cW/bars.length*0.6, gap=cW/bars.length;
@@ -33,8 +76,7 @@ function BarChart({bars,h=190}:{bars:{l:string;v:number;c:string}[];h?:number}){
     });
     bars.forEach((b,i)=>{
       const x=p.l+i*gap+gap/2-bw/2;
-      const bh=(b.v/maxV)*cH*.88;
-      const y=p.t+cH-bh;
+      const bh=(b.v/maxV)*cH*.88, y=p.t+cH-bh;
       ctx.fillStyle=b.c;
       if(ctx.roundRect)ctx.roundRect(x,y,bw,bh,4); else ctx.rect(x,y,bw,bh);
       ctx.fill();
@@ -48,18 +90,93 @@ function BarChart({bars,h=190}:{bars:{l:string;v:number;c:string}[];h?:number}){
   return <canvas ref={ref}/>;
 }
 
-/* ── Shared sub-components ────────────────────────────── */
-const Row=({l,v,col}:{l:string;v:string;col?:string})=>(
-  <div style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #F0EBE5",fontSize:13}}>
-    <span style={{color:"#7a6f64"}}>{l}</span>
-    <span style={{fontWeight:600,color:col||"#1a1510"}}>{v}</span>
-  </div>
-);
+// Donut / pie chart for typologies
+function DonutChart({slices,h=160}:{slices:{l:string;pct:number;c:string}[];h?:number}){
+  const ref=useRef<HTMLCanvasElement>(null);
+  useEffect(()=>{
+    const el=ref.current; if(!el) return;
+    const ctx=el.getContext("2d"); if(!ctx) return;
+    const dpr=window.devicePixelRatio||1;
+    const W=el.parentElement?.clientWidth||300;
+    el.width=W*dpr; el.height=h*dpr; el.style.width=W+"px"; el.style.height=h+"px";
+    ctx.scale(dpr,dpr);
+    const cx=W*.38, cy=h/2, r=Math.min(cx,cy)*0.85, ir=r*0.55;
+    let angle=-Math.PI/2;
+    ctx.clearRect(0,0,W,h);
+    slices.forEach(s=>{
+      const sweep=(s.pct/100)*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(angle)*ir,cy+Math.sin(angle)*ir);
+      ctx.arc(cx,cy,r,angle,angle+sweep);
+      ctx.arc(cx,cy,ir,angle+sweep,angle,true);
+      ctx.closePath();
+      ctx.fillStyle=s.c; ctx.fill();
+      ctx.strokeStyle="#F5F2EE"; ctx.lineWidth=2; ctx.stroke();
+      angle+=sweep;
+    });
+    // Legend
+    slices.forEach((s,i)=>{
+      const lx=W*.78, ly=h/2-(slices.length-1)*14+i*28;
+      ctx.fillStyle=s.c; ctx.fillRect(lx,ly-8,12,12);
+      ctx.fillStyle="#3a3228"; ctx.font="11px Inter,sans-serif"; ctx.textAlign="left";
+      ctx.fillText(`${s.l}`,lx+16,ly+2);
+      ctx.fillStyle="#a09888"; ctx.font="10px Inter,sans-serif";
+      ctx.fillText(`${s.pct}%`,lx+16,ly+13);
+    });
+  },[slices,h]);
+  return <canvas ref={ref}/>;
+}
 
-const Tag=({c,txt}:{c:string;txt:string})=>(
-  <span style={{background:"#EEE9E3",borderRadius:100,padding:"3px 10px",fontSize:11,fontWeight:500,color:"#5a4f44",margin:"3px 3px 0 0",display:"inline-block"}}>{txt}</span>
-);
+// Scatter / bubble chart for competition
+function ScatterChart({points,h=200}:{points:{x:number;y:number;label:string;size:number}[];h?:number}){
+  const ref=useRef<HTMLCanvasElement>(null);
+  useEffect(()=>{
+    const el=ref.current; if(!el) return;
+    const ctx=el.getContext("2d"); if(!ctx) return;
+    const dpr=window.devicePixelRatio||1;
+    const W=el.parentElement?.clientWidth||400;
+    el.width=W*dpr; el.height=h*dpr; el.style.width=W+"px"; el.style.height=h+"px";
+    ctx.scale(dpr,dpr);
+    const p={t:16,r:16,b:44,l:64};
+    const cW=W-p.l-p.r, cH=h-p.t-p.b;
+    const xs=points.map(pt=>pt.x), ys=points.map(pt=>pt.y);
+    const minX=Math.min(...xs), maxX=Math.max(...xs);
+    const minY=Math.min(...ys)*0.9, maxY=Math.max(...ys)*1.1;
+    const toX=(v:number)=>p.l+(v-minX)/(maxX-minX||1)*cW;
+    const toY=(v:number)=>p.t+(1-(v-minY)/(maxY-minY||1))*cH;
+    const maxSz=Math.max(...points.map(pt=>pt.size),1);
+    ctx.clearRect(0,0,W,h);
+    // Grid
+    [0,.25,.5,.75,1].forEach(f=>{
+      const y=p.t+f*cH;
+      ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(W-p.r,y);
+      ctx.strokeStyle="rgba(0,0,0,.05)";ctx.lineWidth=1;ctx.stroke();
+      ctx.font="10px Inter,sans-serif";ctx.fillStyle="#a09888";ctx.textAlign="right";
+      ctx.fillText(`$${((minY+(maxY-minY)*(1-f))/1e6).toFixed(1)}M`,p.l-4,y+3);
+    });
+    // X axis labels
+    ctx.font="9px Inter,sans-serif";ctx.fillStyle="#a09888";ctx.textAlign="center";
+    ctx.fillText(`${minX}m²`,p.l,h-4); ctx.fillText(`${maxX}m²`,toX(maxX),h-4);
+    ctx.fillText("Tamaño unidad",W/2,h-4);
+    // Bubbles
+    const colors=["#2563a8","#d97706","#15803d","#dc2626","#7c3aed"];
+    points.forEach((pt,i)=>{
+      const x=toX(pt.x), y=toY(pt.y);
+      const r=8+(pt.size/maxSz)*16;
+      ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+      ctx.fillStyle=colors[i%colors.length]+"40";ctx.fill();
+      ctx.strokeStyle=colors[i%colors.length];ctx.lineWidth=2;ctx.stroke();
+      ctx.fillStyle="#1a1510";ctx.font="bold 9px Inter,sans-serif";ctx.textAlign="center";
+      const name=pt.label.split("—")[0].trim().split(" ").slice(0,2).join(" ");
+      ctx.fillText(name,x,y+r+11);
+    });
+  },[points,h]);
+  return <canvas ref={ref}/>;
+}
 
+/* ══════════════════════════════════════════════════════
+   MAIN PAGE
+══════════════════════════════════════════════════════ */
 export default function Page(){
   const [dir,setDir]=useState(""); const [m2,setM2]=useState(""); const [px,setPx]=useState("");
   const [tipo,setTipo]=useState<Tipo>("lineamientos"); const [prod,setProd]=useState("");
@@ -92,43 +209,56 @@ export default function Page(){
     porcentaje_diferencia:res.analisis.mercado.porcentaje_sobre_mercado,
   }:null);
 
-  // Recalculate financials for consistency
+  // Recalc financials from raw numbers
   const fin=res?.analisis?.financiero;
   const finF=fin?(()=>{
-    const ing=fin.ingreso_total_estimado||0;
+    const ing=fin.ingreso_total_estimado||fin.ingreso_total_venta||0;
     const cost=fin.costo_total_proyecto||0;
     const util=ing-cost;
     const mg=ing>0?util/ing*100:0;
     const roi=cost>0?util/cost*100:0;
     const plazo=fin.plazo_meses||24;
     const tir=(Math.pow(1+roi/100,12/plazo)-1)*100;
-    return{...fin,utilidad_bruta:util,margen_bruto_pct:Math.round(mg*10)/10,roi_pct:Math.round(roi*10)/10,tir_estimada_pct:Math.round(tir*10)/10};
+    return{...fin,ingreso_total_estimado:ing,utilidad_bruta:util,margen_bruto_pct:Math.round(mg*10)/10,roi_pct:Math.round(roi*10)/10,tir_estimada_pct:Math.round(tir*10)/10};
   })():null;
 
   const densVivHa=parseFloat(res?.lineamientos?.densidad_max_viv_ha)||0;
   const m2Terreno=res?.terreno?.metros2||0;
   const unidadesMax=densVivHa>0?Math.floor(densVivHa*(m2Terreno/10000)):null;
 
-  const C={bg:"#F5F2EE",white:"#fff",dark:"#1a1510",blue:"#2563a8",border:"#EAE5DF",mid:"#7a6f64",light:"#a09888",vl:"#c0b8ae"};
+  // Extract market data
+  const mpData = mp || res?.analisis?.potencial_proyecto ? {
+    ...mp,
+    unidades: res?.analisis?.potencial_proyecto?.unidades_pdu || unidadesMax || 0,
+    m2_unit:  res?.analisis?.potencial_proyecto?.m2_promedio_unidad || mp?.m2_promedio_unidad || 0,
+    pxm2:     res?.analisis?.potencial_proyecto?.precio_venta_m2_promedio || mp?.precio_venta_m2_promedio || 0,
+    ing_calc: res?.analisis?.potencial_proyecto?.calculo_detalle || "",
+    ing_total:res?.analisis?.potencial_proyecto?.ingreso_total_venta || 0,
+    competencia: (mp?.proyectos_competencia||res?.analisis?.mercado?.proyectos_competencia||[])
+      .map((p:any)=>typeof p==="string"?{nombre:p,precio_desde:0,precio_hasta:0,m2_min:0,m2_max:0}:p),
+    tipologias: mp?.tipologias || res?.analisis?.mercado?.tipologias || [],
+  } : null;
+
+  const C={bg:"#F5F2EE",white:"#fff",dark:"#1a1510",blue:BLUE,border:"#EAE5DF",mid:"#7a6f64",light:"#a09888",vl:"#c0b8ae"};
 
   /* ── LINEAMIENTOS BLOCK ── */
   const LineamientosBlock=()=>(
-    <>
-      <div className="card">
-        <div className="lbl" style={{marginBottom:14}}>Lineamientos Urbanísticos — PDU Monterrey 2013-2025</div>
-        <div className="ga">
+    <div style={{display:"flex",flexDirection:"column" as const,gap:14}}>
+      <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:C.light,marginBottom:14}}>Lineamientos Urbanísticos — PDU Monterrey 2013-2025</div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(148px,1fr))",gap:12}}>
           {[
-            {l:"COS",v:res.lineamientos?.cos,s:"Coef. Ocupación Suelo"},
-            {l:"CUS",v:res.lineamientos?.cus,s:"Coef. Utilización Suelo"},
+            {l:"COS",v:res.lineamientos?.cos,s:"Coef. Ocupación"},
+            {l:"CUS",v:res.lineamientos?.cus,s:"Coef. Utilización"},
             {l:"CAV",v:res.lineamientos?.cav,s:"Coef. Área Verde"},
             {l:"Huella máx",v:res.lineamientos?.huella_max_m2?`${$(res.lineamientos.huella_max_m2,"n")} m²`:"—",s:"área de desplante"},
-            {l:"M² construibles",v:res.lineamientos?.m2_construibles?`${$(res.lineamientos.m2_construibles,"n")} m²`:"—",s:"total en todos niveles"},
+            {l:"M² construibles",v:res.lineamientos?.m2_construibles?`${$(res.lineamientos.m2_construibles,"n")} m²`:"—",s:"total en niveles"},
             {l:"Área verde mín",v:res.lineamientos?.area_verde_min_m2?`${$(res.lineamientos.area_verde_min_m2,"n")} m²`:"—",s:""},
             {l:"Densidad máx",v:res.lineamientos?.densidad_max_viv_ha&&res.lineamientos.densidad_max_viv_ha!=="N/D"?`${res.lineamientos.densidad_max_viv_ha} viv/Ha`:"—",s:""},
-            {l:"Unidades máx (PDU)",v:unidadesMax!=null?`${unidadesMax} unidades`:"—",s:unidadesMax!=null?`${densVivHa} viv/Ha × ${m2Terreno}m²/10,000`:""},
+            {l:"Unidades máx PDU",v:unidadesMax!=null?`${unidadesMax} unidades`:"—",s:unidadesMax!=null?`${densVivHa} viv/Ha × ${m2Terreno}m²/10,000`:""},
             {l:"Altura máxima",v:res.lineamientos?.altura_max||"—",s:""},
           ].map(k=>(
-            <div key={k.l} style={{background:C.bg,borderRadius:10,padding:"14px 16px"}}>
+            <div key={k.l} style={{background:C.bg,borderRadius:10,padding:"13px 15px"}}>
               <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:k.s?2:6}}>{k.l}</div>
               {k.s&&<div style={{fontSize:10,color:C.vl,marginBottom:4}}>{k.s}</div>}
               <div style={{fontSize:15,fontWeight:700,color:C.dark}}>{k.v||"—"}</div>
@@ -136,119 +266,209 @@ export default function Page(){
           ))}
         </div>
       </div>
-
-      {/* Giros */}
       {res.giros?.permitidos?.length>0&&(
-        <div className="g2">
-          <div className="card">
-            <div className="lbl" style={{marginBottom:10}}>Giros Permitidos (P) — {res.giros.total_permitidos}</div>
-            <div style={{maxHeight:300,overflowY:"auto" as const}}>
-              {res.giros.permitidos.map((g:string,i:number)=>(
-                <div key={i} style={{fontSize:12,color:"#3a3228",padding:"5px 0",borderBottom:"1px solid #F0EBE5",lineHeight:1.4}}>
-                  <span style={{color:"#15803d",fontWeight:700,marginRight:8,fontSize:10}}>P</span>{g.split("—")[1]||g}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="card">
-            <div className="lbl" style={{marginBottom:10}}>Giros Condicionados (C) — {res.giros.total_condicionados}</div>
-            <div style={{maxHeight:300,overflowY:"auto" as const}}>
-              {res.giros.condicionados?.map((g:string,i:number)=>(
-                <div key={i} style={{fontSize:12,color:"#3a3228",padding:"5px 0",borderBottom:"1px solid #F0EBE5",lineHeight:1.4}}>
-                  <span style={{color:"#d97706",fontWeight:700,marginRight:8,fontSize:10}}>C</span>{g.split("—")[1]||g}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-
-  /* ── MERCADO BLOCK ── */
-  const MercadoBlock=()=>mp?(
-    <>
-      {/* Compat badge */}
-      {res.analisis?.producto_compatible!=null&&(
-        <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 18px",background:res.analisis.producto_compatible?"#F0FDF4":"#FEF2F2",border:`1px solid ${res.analisis.producto_compatible?"#BBF7D0":"#FECACA"}`,borderRadius:12}}>
-          <div style={{width:9,height:9,borderRadius:"50%",background:res.analisis.producto_compatible?"#15803d":"#dc2626",flexShrink:0,marginTop:3}}/>
-          <div>
-            <span style={{fontSize:13,fontWeight:600,color:res.analisis.producto_compatible?"#15803d":"#dc2626"}}>
-              {res.analisis.producto_compatible?"Producto compatible con la zona":"Producto NO compatible con la zona"}
-            </span>
-            {(res.analisis.motivo_compatibilidad||res.analisis?.viabilidad_tecnica?.giro_aplicable)&&(
-              <div style={{fontSize:12,color:C.mid,marginTop:3}}>{res.analisis.motivo_compatibilidad||res.analisis.viabilidad_tecnica?.giro_aplicable}</div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* KPIs precio terreno */}
-      {pt&&(
-        <div className="g4">
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           {[
-            {l:"Mercado — promedio zona",v:`${$(pt.promedio_m2)}/m²`,s:"precio de terrenos",col:undefined},
-            {l:"Precio pedido",v:`${$(res.terreno.precio_m2)}/m²`,s:"terreno actual",col:undefined},
-            {l:"Evaluación",v:(pt.evaluacion_precio||"").toUpperCase(),s:"",col:undefined},
-            {l:"Diferencia vs mercado",v:`${pt.porcentaje_diferencia>0?"+":""}${pt.porcentaje_diferencia}%`,s:"",col:pt.porcentaje_diferencia>20?"#dc2626":pt.porcentaje_diferencia>5?"#d97706":"#15803d"},
-          ].map(k=>(
-            <div key={k.l} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px"}}>
-              <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:6}}>{k.l}</div>
-              <div style={{fontSize:16,fontWeight:700,color:k.col||C.dark}}>{k.v}</div>
-              {k.s&&<div style={{fontSize:11,color:C.vl,marginTop:3}}>{k.s}</div>}
+            {title:`Giros Permitidos (P) — ${res.giros.total_permitidos}`,items:res.giros.permitidos,col:"#15803d"},
+            {title:`Giros Condicionados (C) — ${res.giros.total_condicionados}`,items:res.giros.condicionados||[],col:"#d97706"},
+          ].map(g=>(
+            <div key={g.title} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:C.light,marginBottom:10}}>{g.title}</div>
+              <div style={{maxHeight:290,overflowY:"auto" as const}}>
+                {g.items.map((item:string,i:number)=>(
+                  <div key={i} style={{fontSize:12,color:"#3a3228",padding:"5px 0",borderBottom:"1px solid #F0EBE5",lineHeight:1.4}}>
+                    <span style={{color:g.col,fontWeight:700,marginRight:8,fontSize:10}}>
+                      {g.col==="#15803d"?"P":"C"}
+                    </span>{item.split("—")[1]||item}
+                  </div>
+                ))}
+              </div>
             </div>
           ))}
         </div>
       )}
+    </div>
+  );
 
-      {/* Gráfica precios + competencia */}
-      <div className="g2">
-        <div className="card">
-          <div className="lbl" style={{marginBottom:12}}>Precios de mercado — {mp.tipo||prod} / m²</div>
-          <div style={{width:"100%",overflow:"hidden"}}>
-            <BarChart h={200} bars={[
-              {l:"Venta mín",v:mp.precio_venta_m2_min||mp.precio_venta_producto_m2||0,c:"#93c5fd"},
-              {l:"Venta prom",v:mp.precio_venta_m2_promedio||mp.precio_venta_producto_m2||0,c:"#2563a8"},
-              {l:"Venta máx",v:mp.precio_venta_m2_max||mp.precio_venta_producto_m2||0,c:"#1d4ed8"},
-              {l:"Renta ×10",v:(mp.precio_renta_mensual_m2||mp.precio_renta_producto_m2_mes||0)*10,c:"#d97706"},
-            ]}/>
-          </div>
-          <div style={{display:"flex",gap:16,marginTop:12,fontSize:11,color:C.mid,flexWrap:"wrap" as const,borderTop:`1px solid ${C.border}`,paddingTop:10}}>
-            <span>Absorción: <strong>{mp.absorcion_estimada_meses||mp.absorcion_meses} meses</strong></span>
-            <span>Demanda: <strong style={{color:mp.demanda==="alta"?"#15803d":mp.demanda==="baja"?"#dc2626":"#d97706"}}>{(mp.demanda||"").toUpperCase()}</strong></span>
-            <span>Tendencia: <strong>{(mp.tendencia||"").toUpperCase()}</strong></span>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="lbl" style={{marginBottom:10}}>Proyectos en competencia</div>
-          {Array.isArray(mp.proyectos_competencia)
-            ?mp.proyectos_competencia.map((p:string,i:number)=>(
-              <div key={i} style={{display:"flex",gap:8,padding:"7px 0",borderBottom:"1px solid #F0EBE5",fontSize:13,color:"#3a3228",lineHeight:1.4,alignItems:"flex-start"}}>
-                <span style={{color:C.blue,fontWeight:700,flexShrink:0}}>→</span>{p}
-              </div>
-            ))
-            :<p style={{fontSize:13,color:"#3a3228",lineHeight:1.65}}>{mp.competencia}</p>
-          }
-          {res.analisis?.potencial_proyecto&&(
-            <div style={{marginTop:14,paddingTop:14,borderTop:`1px solid ${C.border}`}}>
-              <div className="lbl" style={{marginBottom:8}}>Potencial del proyecto</div>
-              <div className="g2" style={{gap:10}}>
-                {[
-                  {l:"Unidades PDU",v:unidadesMax!=null?`${unidadesMax} unidades`:`${res.analisis.potencial_proyecto.unidades_estimadas}`},
-                  {l:"M²/unidad",v:`${res.analisis.potencial_proyecto.m2_por_unidad} m²`},
-                  {l:"Ingreso venta",v:$(res.analisis.potencial_proyecto.ingreso_venta_estimado)},
-                  {l:"Renta anual",v:$(res.analisis.potencial_proyecto.ingreso_renta_estimado_anual)},
-                ].map(k=>(
-                  <div key={k.l}><div style={{fontSize:10,color:C.light,marginBottom:3}}>{k.l}</div><div style={{fontSize:14,fontWeight:700}}>{k.v}</div></div>
-                ))}
-              </div>
+  /* ── MERCADO CHARTS BLOCK ── */
+  const MercadoChartsBlock=()=>{
+    if(!mpData) return null;
+    const comps=mpData.competencia||[];
+    const tipos=mpData.tipologias||[];
+    return (
+      <div style={{display:"flex",flexDirection:"column" as const,gap:14}}>
+        {/* Badge compatibilidad */}
+        {res.analisis?.producto_compatible!=null&&(
+          <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 18px",background:res.analisis.producto_compatible?"#F0FDF4":"#FEF2F2",border:`1px solid ${res.analisis.producto_compatible?"#BBF7D0":"#FECACA"}`,borderRadius:12}}>
+            <div style={{width:9,height:9,borderRadius:"50%",background:res.analisis.producto_compatible?"#15803d":"#dc2626",flexShrink:0,marginTop:3}}/>
+            <div>
+              <span style={{fontSize:13,fontWeight:600,color:res.analisis.producto_compatible?"#15803d":"#dc2626"}}>
+                {res.analisis.producto_compatible?"Producto compatible con la zona":"Producto NO compatible"}
+              </span>
+              {(res.analisis.motivo_compatibilidad||res.analisis?.viabilidad_tecnica?.giro_aplicable)&&(
+                <div style={{fontSize:12,color:C.mid,marginTop:3}}>{res.analisis.motivo_compatibilidad||res.analisis.viabilidad_tecnica?.giro_aplicable}</div>
+              )}
             </div>
-          )}
+          </div>
+        )}
+
+        {/* KPIs precio terreno vs mercado */}
+        {pt&&(
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+            {[
+              {l:"Mercado — promedio zona",v:`${$(pt.promedio_m2)}/m²`,s:"terrenos en zona",col:undefined},
+              {l:"Precio pedido terreno",v:`${$(res.terreno.precio_m2)}/m²`,s:"",col:undefined},
+              {l:"Evaluación",v:(pt.evaluacion_precio||"").toUpperCase(),s:"",col:undefined},
+              {l:"Diferencia vs mercado",v:`${pt.porcentaje_diferencia>0?"+":""}${pt.porcentaje_diferencia}%`,s:"",col:pt.porcentaje_diferencia>20?"#dc2626":pt.porcentaje_diferencia>5?"#d97706":"#15803d"},
+            ].map(k=>(
+              <div key={k.l} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:12,padding:"16px 18px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:6}}>{k.l}</div>
+                <div style={{fontSize:16,fontWeight:700,color:k.col||C.dark}}>{k.v}</div>
+                {k.s&&<div style={{fontSize:11,color:C.vl,marginTop:3}}>{k.s}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Fila 1: Precios + Tipologías */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          {/* Gráfica precios por m² */}
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
+              Precios de mercado — {mpData.tipo||prod} / m²
+            </div>
+            <div style={{width:"100%",overflow:"hidden"}}>
+              <VBarChart h={190} bars={[
+                {l:"Venta mín",v:mpData.precio_venta_m2_min||0,c:"#93c5fd"},
+                {l:"Venta prom",v:mpData.precio_venta_m2_promedio||mpData.pxm2||0,c:BLUE},
+                {l:"Venta máx",v:mpData.precio_venta_m2_max||0,c:"#1d4ed8"},
+                {l:"Renta ×10",v:(mpData.precio_renta_mensual_m2||mpData.precio_renta_m2_mes||0)*10,c:AMBER},
+              ].filter(b=>b.v>0)}/>
+            </div>
+            <div style={{display:"flex",gap:14,marginTop:10,fontSize:11,color:C.mid,borderTop:`1px solid ${C.border}`,paddingTop:10,flexWrap:"wrap" as const}}>
+              <span>Absorción: <strong>{mpData.absorcion_estimada_meses||mpData.absorcion_meses} meses</strong></span>
+              <span>Demanda: <strong style={{color:mpData.demanda==="alta"?"#15803d":mpData.demanda==="baja"?"#dc2626":"#d97706"}}>{(mpData.demanda||"").toUpperCase()}</strong></span>
+              <span>Tendencia: <strong>{(mpData.tendencia||"").toUpperCase()}</strong></span>
+            </div>
+          </div>
+
+          {/* Tipologías donut */}
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>Tipologías del mercado</div>
+            {tipos.length>0?(
+              <>
+                <div style={{width:"100%",overflow:"hidden"}}>
+                  <DonutChart h={160} slices={tipos.map((t:any,i:number)=>({
+                    l:`${t.tipo} (${t.m2_min}-${t.m2_max}m²)`,
+                    pct:t.participacion_pct||Math.round(100/tipos.length),
+                    c:[BLUE,"#60a5fa",AMBER,"#34d399","#a78bfa"][i%5],
+                  }))}/>
+                </div>
+                <div style={{marginTop:10}}>
+                  {tipos.map((t:any,i:number)=>(
+                    <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"4px 0",borderBottom:"1px solid #F0EBE5",fontSize:12,color:"#3a3228"}}>
+                      <span>{t.tipo} — {t.m2_min}–{t.m2_max} m²</span>
+                      <span style={{fontWeight:600}}>{$(t.precio_m2)}/m²</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ):(
+              <div style={{color:C.mid,fontSize:13,marginTop:20}}>Datos de tipologías no disponibles para esta zona.</div>
+            )}
+          </div>
         </div>
+
+        {/* Fila 2: Competencia scatter + dispersión precios */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          {/* Competencia scatter */}
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
+              Competencia — tamaño vs precio total
+            </div>
+            {comps.filter((c:any)=>c.m2_min>0&&c.precio_desde>0).length>=2?(
+              <div style={{width:"100%",overflow:"hidden"}}>
+                <ScatterChart h={200} points={comps.filter((c:any)=>c.m2_min>0&&c.precio_desde>0).map((c:any)=>({
+                  x: Math.round((c.m2_min+c.m2_max)/2)||c.m2_min||60,
+                  y: Math.round((c.precio_desde+c.precio_hasta)/2)||c.precio_desde||0,
+                  label: c.nombre||"",
+                  size: c.unidades_total||10,
+                }))}/>
+              </div>
+            ):(
+              <div style={{color:C.mid,fontSize:13,marginTop:20}}>Datos de competencia insuficientes para gráfica.</div>
+            )}
+            <div style={{marginTop:10}}>
+              {comps.map((c:any,i:number)=>(
+                <div key={i} style={{display:"flex",gap:6,padding:"6px 0",borderBottom:"1px solid #F0EBE5",fontSize:12,color:"#3a3228",lineHeight:1.4,alignItems:"flex-start"}}>
+                  <span style={{color:BLUE,fontWeight:700,flexShrink:0}}>→</span>
+                  <span>
+                    <strong>{typeof c==="string"?c:(c.nombre||"")}</strong>
+                    {c.precio_desde>0&&<span style={{color:C.mid}}> — desde {$(c.precio_desde)}</span>}
+                    {c.m2_min>0&&<span style={{color:C.mid}}> — {c.m2_min}–{c.m2_max}m²</span>}
+                    {c.tipologia&&<span style={{color:C.light}}> — {c.tipologia}</span>}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Dispersión precios horizontal */}
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
+              Dispersión de precios por m² — competencia
+            </div>
+            {comps.filter((c:any)=>c.precio_desde>0&&c.m2_min>0).length>0?(
+              <div style={{width:"100%",overflow:"hidden"}}>
+                <HBarChart h={Math.max(180,comps.length*44+24)} bars={
+                  comps.filter((c:any)=>c.precio_desde>0&&c.m2_min>0).map((c:any,i:number)=>{
+                    const m2avg=(c.m2_min+c.m2_max)/2||c.m2_min||60;
+                    const pxm2=Math.round((c.precio_desde+c.precio_hasta)/2/m2avg||c.precio_desde/m2avg||0);
+                    const maxPx=Math.max(...comps.filter((x:any)=>x.precio_desde>0&&x.m2_min>0).map((x:any)=>{
+                      const m=(x.m2_min+x.m2_max)/2||x.m2_min||60;
+                      return (x.precio_desde+x.precio_hasta)/2/m;
+                    }),1);
+                    return {l:(c.nombre||"").split(" ").slice(0,2).join(" "),v:pxm2,c:[BLUE,"#60a5fa",AMBER,"#34d399","#7c3aed"][i%5],max:maxPx};
+                  })
+                }/>
+              </div>
+            ):(
+              <div style={{color:C.mid,fontSize:13,marginTop:20}}>Datos de precios por m² no disponibles.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Cálculo de ingresos */}
+        {(mpData.ing_calc||mpData.unidades>0)&&(
+          <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>Potencial del proyecto — cálculo de ingresos</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:14,marginBottom:12}}>
+              {[
+                {l:"Unidades PDU",v:`${unidadesMax||mpData.unidades} unidades`,s:"densidad × m²/10,000"},
+                {l:"Tamaño promedio",v:mpData.m2_unit||mpData.m2_promedio_unidad?`${mpData.m2_unit||mpData.m2_promedio_unidad} m²/unidad`:"—",s:"del mercado"},
+                {l:"Precio prom /m²",v:mpData.pxm2||mpData.precio_venta_m2_promedio?$(mpData.pxm2||mpData.precio_venta_m2_promedio):"—",s:"del mercado"},
+                {l:"Ingresos venta est.",v:mpData.ing_total||res.analisis?.potencial_proyecto?.ingreso_total_venta?$(mpData.ing_total||res.analisis.potencial_proyecto.ingreso_total_venta):"—",s:mpData.ing_calc||"unidades × m²/unidad × $/m²"},
+              ].map(k=>(
+                <div key={k.l}>
+                  <div style={{fontSize:10,fontWeight:700,color:"#1e40af",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
+                  <div style={{fontSize:16,fontWeight:700,color:"#1e3a5f"}}>{k.v}</div>
+                  {k.s&&<div style={{fontSize:10,color:"#60a5fa",marginTop:2}}>{k.s}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Resumen IA */}
+        {res.analisis?.recomendacion&&(
+          <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:8}}>Análisis IA — Recomendación</div>
+            <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f"}}>{res.analisis.recomendacion}</p>
+          </div>
+        )}
       </div>
-    </>
-  ):null;
+    );
+  };
 
   /* ── HEADER NEGRO ── */
   const Header=()=>(
@@ -267,7 +487,7 @@ export default function Page(){
           </div>
         )}
       </div>
-      <div className="g4">
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
         {[
           {l:"ZONA",v:`${res.ubicacion.zona} · ${res.ubicacion.densidad}`},
           {l:"PRECIO / M² TERRENO",v:$(res.terreno.precio_m2)},
@@ -297,13 +517,11 @@ export default function Page(){
       .card{background:#fff;border:1px solid #EAE5DF;border-radius:14px;padding:20px 24px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
       .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
       .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
-      .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
-      .ga{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;}
-      @media(max-width:720px){.g2,.g3,.g4{grid-template-columns:1fr 1fr!important;}}
-      @media(max-width:480px){.g2,.g3,.g4,.ga{grid-template-columns:1fr!important;}}
+      @media(max-width:700px){.g2,.g3{grid-template-columns:1fr!important;}}
       @keyframes spin{to{transform:rotate(360deg)}}
       @keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
       .up{animation:up .3s ease forwards;}
+      .sec-hdr{border-left:3px solid;padding-left:14px;margin-bottom:14px;}
     `}</style>
 
     {/* NAV */}
@@ -311,11 +529,11 @@ export default function Page(){
       <div style={{display:"flex",alignItems:"center",gap:10}}>
         <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
           <rect width="36" height="36" rx="9" fill="#DBEAFE"/>
-          <path d="M18 8L28 26H8Z" fill="none" stroke="#2563a8" strokeWidth="2.2" strokeLinejoin="round"/>
-          <path d="M13 26Q18 16 23 26" fill="none" stroke="#2563a8" strokeWidth="1.6" strokeLinecap="round"/>
-          <line x1="18" y1="20" x2="18" y2="26" stroke="#2563a8" strokeWidth="1.6" strokeLinecap="round"/>
+          <path d="M18 8L28 26H8Z" fill="none" stroke={BLUE} strokeWidth="2.2" strokeLinejoin="round"/>
+          <path d="M13 26Q18 16 23 26" fill="none" stroke={BLUE} strokeWidth="1.6" strokeLinecap="round"/>
+          <line x1="18" y1="20" x2="18" y2="26" stroke={BLUE} strokeWidth="1.6" strokeLinecap="round"/>
         </svg>
-        <span style={{fontSize:16,fontWeight:600,letterSpacing:"-.03em"}}>un<span style={{color:"#2563a8"}}>earth</span></span>
+        <span style={{fontSize:16,fontWeight:600,letterSpacing:"-.03em"}}>un<span style={{color:BLUE}}>earth</span></span>
       </div>
       <span style={{fontSize:11,fontWeight:500,color:"#c0b8ae",letterSpacing:".07em"}}>MONTERREY MVP</span>
     </header>
@@ -326,11 +544,11 @@ export default function Page(){
       {!res&&!loading&&(
         <div style={{textAlign:"center",marginBottom:48}} className="up">
           <div style={{display:"inline-flex",alignItems:"center",gap:7,background:"#DBEAFE",borderRadius:100,padding:"5px 14px",marginBottom:24}}>
-            <div style={{width:7,height:7,borderRadius:"50%",background:"#2563a8"}}/>
+            <div style={{width:7,height:7,borderRadius:"50%",background:BLUE}}/>
             <span style={{fontSize:10,fontWeight:700,color:"#1d4ed8",letterSpacing:".08em"}}>PDU MONTERREY 2013–2025 · IA</span>
           </div>
           <h1 style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(40px,5.5vw,64px)",lineHeight:1,color:"#1a1510",marginBottom:16,fontWeight:400}}>
-            Unearth your next<br/><em style={{color:"#2563a8"}}>development.</em>
+            Unearth your next<br/><em style={{color:BLUE}}>development.</em>
           </h1>
           <p style={{fontSize:16,color:"#7a6f64",lineHeight:1.7,maxWidth:420,margin:"0 auto"}}>
             Dirección, metros y precio — la IA hace el análisis completo.
@@ -370,88 +588,77 @@ export default function Page(){
           {res&&<button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");}} style={{background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"13px 18px",color:"#7a6f64",fontSize:13,cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>← Nuevo</button>}
         </div>
         {loading&&<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:14}}>
-          {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?"#2563a8":"#EAE5DF",transform:i===step?"scale(1.5)":"scale(1)",transition:"all .3s"}}/>)}
+          {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?BLUE:"#EAE5DF",transform:i===step?"scale(1.5)":"scale(1)",transition:"all .3s"}}/>)}
         </div>}
       </div>
 
-      {/* ══════════════ LINEAMIENTOS ══════════════ */}
+      {/* ══ LINEAMIENTOS ══ */}
       {res&&!loading&&res.tipo_analisis==="lineamientos"&&(
-        <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-          <Header/>
-          <LineamientosBlock/>
-        </div>
+        <div className="up"><Header/><LineamientosBlock/></div>
       )}
 
-      {/* ══════════════ MERCADO ══════════════ */}
+      {/* ══ MERCADO ══ */}
       {res&&!loading&&res.tipo_analisis==="mercado"&&(
         <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
           <Header/>
-          <MercadoBlock/>
-          {/* Resumen IA */}
-          {res.analisis?.recomendacion&&(
-            <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
-              <div className="lbl" style={{color:"#1d4ed8",marginBottom:8}}>Análisis IA — Recomendación</div>
-              <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f"}}>{res.analisis.recomendacion}</p>
-            </div>
-          )}
-          {/* Lineamientos completos */}
+          {/* Orden: mercado primero, luego lineamientos */}
+          <MercadoChartsBlock/>
+          <div className="sec-hdr" style={{borderColor:BLUE,marginTop:8}}>
+            <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos y Giros Permitidos</div>
+          </div>
           <LineamientosBlock/>
         </div>
       )}
 
-      {/* ══════════════ COMPLETO ══════════════ */}
+      {/* ══ COMPLETO ══ */}
       {res&&!loading&&res.tipo_analisis==="completo"&&(
         <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
           <Header/>
 
-          {/* Resumen ejecutivo */}
+          {/* Resumen */}
           {res.analisis?.resumen_ejecutivo&&(
             <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
-              <div className="lbl" style={{color:"#1d4ed8",marginBottom:8}}>Resumen Ejecutivo</div>
+              <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:8}}>Resumen Ejecutivo</div>
               <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f"}}>{res.analisis.resumen_ejecutivo}</p>
             </div>
           )}
 
-          {/* === SECCIÓN 1: LINEAMIENTOS === */}
-          <div style={{borderLeft:"3px solid #2563a8",paddingLeft:16}}>
-            <div style={{fontSize:12,fontWeight:700,color:"#2563a8",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:12}}>1. Lineamientos Urbanísticos y Giros</div>
+          {/* SECCIÓN 1 */}
+          <div className="sec-hdr" style={{borderColor:BLUE}}>
+            <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>1 · Lineamientos Urbanísticos y Giros</div>
           </div>
           <LineamientosBlock/>
 
-          {/* Reglamento de construcción */}
+          {/* Reglamento construcción */}
           {res.analisis?.viabilidad_tecnica&&(
             <div className="card">
               <div className="lbl" style={{marginBottom:14}}>Reglamento de Construcción — Restricciones del Predio</div>
-              <div className="g2" style={{marginBottom:14}}>
-                <div>
-                  <div className="g2" style={{gap:10}}>
-                    {[
-                      {l:"Frente estimado",v:res.analisis.viabilidad_tecnica.frente_estimado_m?`${res.analisis.viabilidad_tecnica.frente_estimado_m} m`:"—"},
-                      {l:"Restricción frontal",v:res.analisis.viabilidad_tecnica.restriccion_frontal_m?`${res.analisis.viabilidad_tecnica.restriccion_frontal_m} m`:"—"},
-                      {l:"Restricción lateral",v:res.analisis.viabilidad_tecnica.restriccion_lateral_m?`${res.analisis.viabilidad_tecnica.restriccion_lateral_m} m`:"—"},
-                      {l:"Restricción posterior",v:res.analisis.viabilidad_tecnica.restriccion_posterior_m?`${res.analisis.viabilidad_tecnica.restriccion_posterior_m} m`:"—"},
-                      {l:"Área neta construible",v:res.analisis.viabilidad_tecnica.area_neta_construible_m2?`${$(res.analisis.viabilidad_tecnica.area_neta_construible_m2,"n")} m²`:"—"},
-                      {l:"Niveles posibles",v:res.analisis.viabilidad_tecnica.niveles_posibles||"—"},
-                    ].map(k=>(
-                      <div key={k.l} style={{background:"#F5F2EE",borderRadius:10,padding:"12px 14px"}}>
-                        <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
-                        <div style={{fontSize:14,fontWeight:700,color:"#1a1510"}}>{k.v}</div>
+              <div className="g2">
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {[
+                    {l:"Frente estimado",v:res.analisis.viabilidad_tecnica.frente_estimado_m?`${res.analisis.viabilidad_tecnica.frente_estimado_m} m`:"—"},
+                    {l:"Restricción frontal",v:res.analisis.viabilidad_tecnica.restriccion_frontal_m?`${res.analisis.viabilidad_tecnica.restriccion_frontal_m} m`:"—"},
+                    {l:"Restricción lateral",v:res.analisis.viabilidad_tecnica.restriccion_lateral_m?`${res.analisis.viabilidad_tecnica.restriccion_lateral_m} m`:"—"},
+                    {l:"Restricción posterior",v:res.analisis.viabilidad_tecnica.restriccion_posterior_m?`${res.analisis.viabilidad_tecnica.restriccion_posterior_m} m`:"—"},
+                    {l:"Área neta real",v:res.analisis.viabilidad_tecnica.area_neta_construible_m2?`${$(res.analisis.viabilidad_tecnica.area_neta_construible_m2,"n")} m²`:"—"},
+                    {l:"Niveles posibles",v:res.analisis.viabilidad_tecnica.niveles_posibles||"—"},
+                  ].map(k=>(
+                    <div key={k.l} style={{background:"#F5F2EE",borderRadius:10,padding:"12px 14px"}}>
+                      <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
+                      <div style={{fontSize:14,fontWeight:700}}>{k.v}</div>
+                    </div>
+                  ))}
+                </div>
+                {res.analisis.viabilidad_tecnica.retos_constructivos?.length>0&&(
+                  <div>
+                    <div className="lbl" style={{marginBottom:8}}>Retos constructivos</div>
+                    {res.analisis.viabilidad_tecnica.retos_constructivos.map((r:string,i:number)=>(
+                      <div key={i} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #F0EBE5",fontSize:13,color:"#3a3228",lineHeight:1.4}}>
+                        <span style={{color:"#f97316",fontWeight:700,flexShrink:0}}>·</span>{r}
                       </div>
                     ))}
                   </div>
-                </div>
-                <div>
-                  {res.analisis.viabilidad_tecnica.retos_constructivos?.length>0&&(
-                    <>
-                      <div className="lbl" style={{marginBottom:8}}>Retos constructivos</div>
-                      {res.analisis.viabilidad_tecnica.retos_constructivos.map((r:string,i:number)=>(
-                        <div key={i} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #F0EBE5",fontSize:13,color:"#3a3228",lineHeight:1.4}}>
-                          <span style={{color:"#f97316",fontWeight:700,flexShrink:0}}>·</span>{r}
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -459,12 +666,14 @@ export default function Page(){
           {/* Estacionamiento */}
           {res.analisis?.estacionamiento&&(
             <div style={{background:res.analisis.estacionamiento.viable===false?"#FFF7ED":"#F0FDF4",border:`1px solid ${res.analisis.estacionamiento.viable===false?"#FED7AA":"#BBF7D0"}`,borderRadius:14,padding:"20px 24px"}}>
-              <div className="lbl" style={{color:res.analisis.estacionamiento.viable===false?"#c2410c":"#15803d",marginBottom:12}}>Análisis de Estacionamiento</div>
-              <div className="g4" style={{marginBottom:12}}>
+              <div style={{fontSize:10,fontWeight:700,color:res.analisis.estacionamiento.viable===false?"#c2410c":"#15803d",letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
+                Análisis de Estacionamiento
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:12}}>
                 {[
                   {l:"Cajones requeridos",v:`${res.analisis.estacionamiento.cajones_requeridos} cajones`},
                   {l:"Área requerida",v:`${$(res.analisis.estacionamiento.area_requerida_m2,"n")} m²`},
-                  {l:"Área disponible est.",v:`${$(res.analisis.estacionamiento.area_disponible_estimada_m2,"n")} m²`},
+                  {l:"Área disponible",v:`${$(res.analisis.estacionamiento.area_disponible_estimada_m2,"n")} m²`},
                   {l:"Viabilidad",v:res.analisis.estacionamiento.viable?"VIABLE":"RESTRICCIÓN CRÍTICA",col:res.analisis.estacionamiento.viable?"#15803d":"#dc2626"},
                 ].map(k=>(
                   <div key={k.l}>
@@ -473,22 +682,16 @@ export default function Page(){
                   </div>
                 ))}
               </div>
-              <div style={{fontSize:12,color:"#7a6f64",lineHeight:1.6}}>
-                <strong>Cálculo:</strong> {res.analisis.estacionamiento.calculo}
-              </div>
-              {res.analisis.estacionamiento.notas&&(
-                <div style={{fontSize:12,color:"#7a6f64",lineHeight:1.6,marginTop:6}}>
-                  <strong>Notas:</strong> {res.analisis.estacionamiento.notas}
-                </div>
-              )}
+              <div style={{fontSize:12,color:"#7a6f64",lineHeight:1.6}}><strong>Cálculo:</strong> {res.analisis.estacionamiento.calculo}</div>
+              {res.analisis.estacionamiento.notas&&<div style={{fontSize:12,color:"#7a6f64",marginTop:6,lineHeight:1.6}}><strong>Notas:</strong> {res.analisis.estacionamiento.notas}</div>}
             </div>
           )}
 
-          {/* === SECCIÓN 2: ESTUDIO DE MERCADO === */}
-          <div style={{borderLeft:"3px solid #d97706",paddingLeft:16,marginTop:8}}>
-            <div style={{fontSize:12,fontWeight:700,color:"#d97706",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:12}}>2. Estudio de Mercado</div>
+          {/* SECCIÓN 2 */}
+          <div className="sec-hdr" style={{borderColor:AMBER,marginTop:8}}>
+            <div style={{fontSize:11,fontWeight:700,color:AMBER,letterSpacing:".08em",textTransform:"uppercase" as const}}>2 · Estudio de Mercado</div>
           </div>
-          <MercadoBlock/>
+          <MercadoChartsBlock/>
 
           {/* Entorno */}
           {res.analisis?.entorno_y_urbanismo&&(
@@ -496,42 +699,47 @@ export default function Page(){
               <div className="lbl" style={{marginBottom:10}}>Entorno y Urbanismo</div>
               <p style={{fontSize:14,lineHeight:1.7,color:"#3a3228",marginBottom:8}}>{res.analisis.entorno_y_urbanismo.descripcion_zona}</p>
               {res.analisis.entorno_y_urbanismo.conectividad&&<p style={{fontSize:13,color:"#7a6f64",lineHeight:1.6,marginBottom:8}}>{res.analisis.entorno_y_urbanismo.conectividad}</p>}
-              {res.analisis.entorno_y_urbanismo.tendencia_crecimiento&&<p style={{fontSize:13,color:"#7a6f64",lineHeight:1.6,marginBottom:8}}>{res.analisis.entorno_y_urbanismo.tendencia_crecimiento}</p>}
               {res.analisis.entorno_y_urbanismo.servicios_cercanos?.length>0&&(
-                <div style={{marginTop:8}}>
-                  {res.analisis.entorno_y_urbanismo.servicios_cercanos.map((s:string,i:number)=><Tag key={i} c="" txt={s}/>)}
-                </div>
+                <div style={{marginTop:8}}>{res.analisis.entorno_y_urbanismo.servicios_cercanos.map((s:string,i:number)=>(
+                  <span key={i} style={{background:"#EEE9E3",borderRadius:100,padding:"3px 10px",fontSize:11,fontWeight:500,color:"#5a4f44",margin:"3px 3px 0 0",display:"inline-block"}}>{s}</span>
+                ))}</div>
               )}
             </div>
           )}
 
-          {/* === SECCIÓN 3: ANÁLISIS FINANCIERO === */}
-          <div style={{borderLeft:"3px solid #15803d",paddingLeft:16,marginTop:8}}>
-            <div style={{fontSize:12,fontWeight:700,color:"#15803d",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:12}}>3. Análisis Financiero</div>
+          {/* SECCIÓN 3 */}
+          <div className="sec-hdr" style={{borderColor:GREEN,marginTop:8}}>
+            <div style={{fontSize:11,fontWeight:700,color:GREEN,letterSpacing:".08em",textTransform:"uppercase" as const}}>3 · Análisis Financiero</div>
           </div>
 
           {finF&&(
             <div className="card">
               <div className="lbl" style={{marginBottom:14}}>Desglose financiero completo</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:12}}>
+              {finF.calculo_ingresos&&(
+                <div style={{background:"#EFF6FF",borderRadius:10,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#1e3a5f",lineHeight:1.6}}>
+                  <strong>Cálculo de ingresos:</strong> {finF.calculo_ingresos}
+                </div>
+              )}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12}}>
                 {[
                   {l:"Precio terreno",v:$(finF.precio_terreno)},
                   {l:"Costo construcción",v:$(finF.costo_construccion_total)},
                   {l:"Estacionamiento",v:$(finF.costo_estacionamiento||0)},
-                  {l:"Indirectos",v:`${finF.gastos_indirectos_pct||0}% = ${$(finF.gastos_indirectos||0)}`},
-                  {l:"Comercialización",v:`${finF.comercializacion_pct||0}% = ${$(finF.comercializacion||0)}`},
-                  {l:"Contingencias",v:`${finF.contingencias_pct||0}% = ${$(finF.contingencias||0)}`},
-                  {l:"Costo total proyecto",v:$(finF.costo_total_proyecto),b:true},
+                  {l:"Indirectos",v:`${finF.gastos_indirectos_pct||0}% → ${$(finF.gastos_indirectos||0)}`},
+                  {l:"Comercialización",v:`${finF.comercializacion_pct||0}% → ${$(finF.comercializacion||0)}`},
+                  {l:"Contingencias",v:`${finF.contingencias_pct||0}% → ${$(finF.contingencias||0)}`},
+                  {l:"Costo total",v:$(finF.costo_total_proyecto),b:true},
                   {l:"Ingreso estimado",v:$(finF.ingreso_total_estimado),b:true},
-                  {l:"Utilidad bruta",v:$(finF.utilidad_bruta),col:finF.utilidad_bruta>=0?"#15803d":"#dc2626",b:true},
-                  {l:"Margen bruto",v:pct(finF.margen_bruto_pct),col:finF.margen_bruto_pct>=15?"#15803d":finF.margen_bruto_pct>=8?"#d97706":"#dc2626",b:true},
-                  {l:"ROI",v:pct(finF.roi_pct),col:finF.roi_pct>=20?"#15803d":finF.roi_pct>=10?"#d97706":"#dc2626",b:true},
-                  {l:"TIR estimada",v:pct(finF.tir_estimada_pct),col:finF.tir_estimada_pct>=18?"#15803d":finF.tir_estimada_pct>=10?"#d97706":"#dc2626",b:true},
-                  {l:"Unidades reales",v:`${finF.unidades_reales||unidadesMax||"—"} unidades`},
+                  {l:"Utilidad bruta",v:$(finF.utilidad_bruta),col:finF.utilidad_bruta>=0?GREEN:"#dc2626",b:true},
+                  {l:"Margen bruto",v:pct(finF.margen_bruto_pct),col:finF.margen_bruto_pct>=15?GREEN:finF.margen_bruto_pct>=8?AMBER:"#dc2626",b:true},
+                  {l:"ROI",v:pct(finF.roi_pct),col:finF.roi_pct>=20?GREEN:finF.roi_pct>=10?AMBER:"#dc2626",b:true},
+                  {l:"TIR estimada",v:pct(finF.tir_estimada_pct),col:finF.tir_estimada_pct>=18?GREEN:finF.tir_estimada_pct>=10?AMBER:"#dc2626",b:true},
+                  {l:"Unidades reales",v:`${finF.unidades_reales||unidadesMax} und.`},
+                  {l:"M² / unidad",v:finF.m2_promedio_unidad?`${finF.m2_promedio_unidad} m²`:"—"},
                   {l:"Precio/unidad",v:$(finF.precio_venta_por_unidad)},
                   {l:"Plazo",v:`${finF.plazo_meses} meses`},
                 ].map(k=>(
-                  <div key={k.l} style={{background:"#F5F2EE",borderRadius:10,padding:"14px 16px"}}>
+                  <div key={k.l} style={{background:"#F5F2EE",borderRadius:10,padding:"13px 15px"}}>
                     <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
                     <div style={{fontSize:(k as any).b?17:14,fontWeight:700,color:(k as any).col||"#1a1510"}}>{k.v||"—"}</div>
                   </div>
@@ -555,7 +763,7 @@ export default function Page(){
               )}
               {res.analisis?.fortalezas?.length>0&&(
                 <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:14,padding:"20px 24px"}}>
-                  <div className="lbl" style={{color:"#15803d",marginBottom:10}}>Fortalezas</div>
+                  <div className="lbl" style={{color:GREEN,marginBottom:10}}>Fortalezas</div>
                   {res.analisis.fortalezas.map((f:string,i:number)=>(
                     <div key={i} style={{display:"flex",gap:8,marginTop:9,fontSize:13,color:"#14532d",lineHeight:1.5,alignItems:"flex-start"}}>
                       <span style={{color:"#22c55e",fontWeight:800,flexShrink:0}}>✓</span>{f}
@@ -568,7 +776,7 @@ export default function Page(){
 
           {/* Veredicto */}
           {res.analisis?.veredicto&&semCol&&(
-            <div style={{background:"#fff",border:`2px solid ${semCol}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semCol}10`}}>
+            <div style={{background:C.white,border:`2px solid ${semCol}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semCol}10`}}>
               <div className="lbl" style={{marginBottom:8}}>Veredicto Final</div>
               <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:semCol,lineHeight:1,marginBottom:14}}>{res.analisis.veredicto}</div>
               <p style={{fontSize:14,color:"#3a3228",lineHeight:1.7,marginBottom:res.analisis.proximos_pasos?.length>0?14:0}}>{res.analisis.justificacion_veredicto}</p>
@@ -577,7 +785,7 @@ export default function Page(){
                   <div className="lbl" style={{marginBottom:10}}>Próximos Pasos</div>
                   {res.analisis.proximos_pasos.map((p:string,i:number)=>(
                     <div key={i} style={{display:"flex",gap:12,marginTop:10,fontSize:13,color:"#3a3228",lineHeight:1.5,alignItems:"flex-start"}}>
-                      <div style={{width:22,height:22,borderRadius:"50%",background:"#EFF6FF",border:"1.5px solid #BFDBFE",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,fontWeight:700,color:"#2563a8"}}>{i+1}</div>
+                      <div style={{width:22,height:22,borderRadius:"50%",background:"#EFF6FF",border:`1.5px solid #BFDBFE`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,fontWeight:700,color:BLUE}}>{i+1}</div>
                       {p}
                     </div>
                   ))}
@@ -590,7 +798,7 @@ export default function Page(){
     </div>
 
     <footer style={{borderTop:"1px solid #EAE5DF",padding:"18px 32px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#F5F2EE"}}>
-      <span style={{fontSize:14,fontWeight:600,letterSpacing:"-.03em"}}>un<span style={{color:"#2563a8"}}>earth</span></span>
+      <span style={{fontSize:14,fontWeight:600,letterSpacing:"-.03em"}}>un<span style={{color:BLUE}}>earth</span></span>
       <span style={{fontSize:11,color:"#c0b8ae",letterSpacing:".04em"}}>Monterrey, NL · {new Date().getFullYear()}</span>
     </footer>
   </>);
