@@ -1007,9 +1007,6 @@ export default function Page(){
       )}
     </div></>)}
 
-    <footer style={{borderTop:"1px solid #EAE5DF",padding:"18px 32px",display:"flex",justifyContent:"space-between",alignItems:"center",background:"#F5F2EE"}}>
-      <img src="/LOGO_LETRAS.svg" alt="unearth" style={{height:18,objectFit:"contain"}}/>
-      <span style={{fontSize:11,color:"#c0b8ae",letterSpacing:".04em"}}>Monterrey, NL · {new Date().getFullYear()}</span>
-    </footer>
+
   </>);
 }
