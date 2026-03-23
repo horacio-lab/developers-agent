@@ -658,7 +658,7 @@ export default function Page(){
         <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 60px",position:"relative",zIndex:10}}>
           {/* Logo real grande */}
           <div style={{marginBottom:8,position:"relative"}}>
-            <span style={{display:"inline-block",width:130,height:130,filter:"drop-shadow(0 0 26px rgba(94,168,240,.65))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
+            <span style={{display:"inline-block",width:160,height:160,filter:"drop-shadow(0 0 26px rgba(94,168,240,.65))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
   <g transform="matrix(0.751636,0,0,0.751636,357.522346,8.290459)">
     <path d="M2823.312,1280.588C3311.812,1280.588 3708.412,1677.188 3708.412,2165.688C3708.412,2654.188 3311.812,3050.788 2823.312,3050.788C2334.812,3050.788 1938.212,2654.188 1938.212,2165.688C1938.212,1677.188 2334.812,1280.588 2823.312,1280.588ZM2823.312,1322.164C2357.758,1322.164 1979.788,1700.135 1979.788,2165.688C1979.788,2631.242 2357.758,3009.212 2823.312,3009.212C3288.865,3009.212 3666.836,2631.242 3666.836,2165.688C3666.836,1700.135 3288.865,1322.164 2823.312,1322.164Z" fill="white"/>
   </g>
