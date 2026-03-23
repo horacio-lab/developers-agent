@@ -362,11 +362,11 @@ export default function Page(){
                 {l:"Venta mín",v:mpData.precio_venta_m2_min||0,c:"#93c5fd"},
                 {l:"Venta prom",v:mpData.precio_venta_m2_promedio||mpData.pxm2||0,c:BLUE},
                 {l:"Venta máx",v:mpData.precio_venta_m2_max||0,c:"#1d4ed8"},
-                {l:"Renta ×10",v:(mpData.precio_renta_mensual_m2||mpData.precio_renta_m2_mes||0)*10,c:AMBER},
+                {l:"Renta ×10",v:(mpData.precio_renta_mensual_m2||0)*10,c:AMBER},
               ].filter(b=>b.v>0)}/>
             </div>
             <div style={{display:"flex",gap:14,marginTop:10,fontSize:11,color:C.mid,borderTop:`1px solid ${C.border}`,paddingTop:10,flexWrap:"wrap" as const}}>
-              <span>Absorción: <strong>{mpData.absorcion_estimada_meses||mpData.absorcion_meses} meses</strong></span>
+              <span>Absorción: <strong>{mpData.absorcion_estimada_meses} meses</strong></span>
               <span>Demanda: <strong style={{color:mpData.demanda==="alta"?"#15803d":mpData.demanda==="baja"?"#dc2626":"#d97706"}}>{(mpData.demanda||"").toUpperCase()}</strong></span>
               <span>Tendencia: <strong>{(mpData.tendencia||"").toUpperCase()}</strong></span>
             </div>
