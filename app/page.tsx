@@ -335,10 +335,16 @@ export default function Page(){
       const m2     = res.terreno?.metros2||300;
       const cos    = parseFloat(lin.cos)||0.6;
       const cus    = parseFloat(lin.cus)||2.4;
-      const frente = vt.frente_m||vt.frente_estimado_m||Math.round(Math.sqrt(m2*0.6));
-      const fondo  = vt.fondo_m||Math.round(m2/frente);
+      const frente = parseFloat(vt.frente_m) || parseFloat(vt.frente_estimado_m) || Math.round(Math.sqrt(m2*0.6));
+      const fondo  = parseFloat(vt.fondo_m) || Math.round(m2/frente);
       const huella = lin.huella_max_m2||Math.round(m2*cos);
-      const niveles= Math.max(1,Math.round(cus/cos));
+      
+      // ✅ FIX: Lee niveles_posibles del reporte en lugar de calcular con cus/cos
+      const niveles = (() => {
+        const nivStr = vt.niveles_posibles || "";
+        const match = nivStr.match(/(\d+)\s*nivel/i);
+        return match ? parseInt(match[1]) : Math.max(1, Math.round(cus/cos));
+      })();
 
       const r = await fetch("https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/generar_isometrico",{
         method:"POST",
@@ -502,50 +508,7 @@ export default function Page(){
                     const pxm2=Math.round((c.precio_desde+c.precio_hasta)/2/m2avg||c.precio_desde/m2avg||0);
                     const maxPx=Math.max(...comps.filter((x:any)=>x.precio_desde>0&&x.m2_min>0).map((x:any)=>{
                       const m=(x.m2_min+x.m2_max)/2||x.m2_min||60;
-                    
-  async function generarIsometrico() {
-    if(!res||!res.analisis) return;
-    setIsoLoading(true);
-    setIsoHtml(null);
-    try {
-      const vt  = res.analisis.viabilidad_tecnica||{};
-      const lin = res.lineamientos||{};
-      const fin = res.analisis.financiero||{};
-      const m2     = res.terreno?.metros2||300;
-      const cos    = parseFloat(lin.cos)||0.6;
-      const cus    = parseFloat(lin.cus)||2.4;
-      const frente = vt.frente_m||vt.frente_estimado_m||Math.round(Math.sqrt(m2*0.6));
-      const fondo  = vt.fondo_m||Math.round(m2/frente);
-      const huella = lin.huella_max_m2||Math.round(m2*cos);
-      const niveles= Math.max(1,Math.round(cus/cos));
-
-      const r = await fetch("https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/generar_isometrico",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog"},
-        body:JSON.stringify({
-          frente, fondo, metros2:m2, cos, cus,
-          altura_max:parseFloat(lin.altura_max)||18,
-          niveles,
-          rest_frontal:vt.restriccion_frontal_m||3,
-          rest_lateral:vt.restriccion_lateral_m||0,
-          rest_posterior:vt.restriccion_posterior_m||3,
-          unidades:fin.unidades_reales||lin.unidades_max_pdu||0,
-          zona:res.ubicacion?.zona||"",
-          direccion:res.ubicacion?.direccion||"",
-          huella,
-        })
-      });
-      const d = await r.json();
-      if(d.html&&(d.html.startsWith("<!DOCTYPE")||d.html.startsWith("<html"))) {
-        setIsoHtml(d.html);
-      } else {
-        alert("No se pudo generar el modelo. Intenta de nuevo.");
-      }
-    } catch(e){ alert("Error: "+e); }
-    finally { setIsoLoading(false); }
-  }
-
-  return (x.precio_desde+x.precio_hasta)/2/m;
+                      return(x.precio_desde+x.precio_hasta)/2/m;
                     }),1);
                     return {l:(c.nombre||"").split(" ").slice(0,2).join(" "),v:pxm2,c:[BLUE,"#60a5fa",AMBER,"#34d399","#7c3aed"][i%5],max:maxPx};
                   })
