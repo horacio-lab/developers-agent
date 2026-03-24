@@ -181,7 +181,10 @@ export default function Page(){
   const [dir,setDir]=useState(""); const [m2,setM2]=useState(""); const [px,setPx]=useState("");
   const [frente,setFrente]=useState(""); const [fondo,setFondo]=useState("");
   const [tipo,setTipo]=useState<Tipo>("lineamientos"); const [prod,setProd]=useState("");
-  const [step,setStep]=useState(0); const [loading,setLoading]=useState(false);
+  const [step,setStep]=useState(0);
+  const [isoLoading,setIsoLoading]=useState(false);
+  const [isoHtml,setIsoHtml]=useState<string|null>(null);
+ const [loading,setLoading]=useState(false);
   const [res,setRes]=useState<any>(null); const [err,setErr]=useState("");
   const needsProd=tipo==="mercado"||tipo==="completo";
 
@@ -319,12 +322,56 @@ export default function Page(){
     </div>
   );
 
+
+  
+  async function generarIsometrico() {
+    if(!res||!res.analisis) return;
+    setIsoLoading(true);
+    setIsoHtml(null);
+    try {
+      const vt  = res.analisis.viabilidad_tecnica||{};
+      const lin = res.lineamientos||{};
+      const fin = res.analisis.financiero||{};
+      const m2     = res.terreno?.metros2||300;
+      const cos    = parseFloat(lin.cos)||0.6;
+      const cus    = parseFloat(lin.cus)||2.4;
+      const frente = vt.frente_m||vt.frente_estimado_m||Math.round(Math.sqrt(m2*0.6));
+      const fondo  = vt.fondo_m||Math.round(m2/frente);
+      const huella = lin.huella_max_m2||Math.round(m2*cos);
+      const niveles= Math.max(1,Math.round(cus/cos));
+
+      const r = await fetch("https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/generar_isometrico",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog"},
+        body:JSON.stringify({
+          frente, fondo, metros2:m2, cos, cus,
+          altura_max:parseFloat(lin.altura_max)||18,
+          niveles,
+          rest_frontal:vt.restriccion_frontal_m||3,
+          rest_lateral:vt.restriccion_lateral_m||0,
+          rest_posterior:vt.restriccion_posterior_m||3,
+          unidades:fin.unidades_reales||lin.unidades_max_pdu||0,
+          zona:res.ubicacion?.zona||"",
+          direccion:res.ubicacion?.direccion||"",
+          huella,
+        })
+      });
+      const d = await r.json();
+      if(d.html&&(d.html.startsWith("<!DOCTYPE")||d.html.startsWith("<html"))) {
+        setIsoHtml(d.html);
+      } else {
+        alert("No se pudo generar el modelo. Intenta de nuevo.");
+      }
+    } catch(e){ alert("Error: "+e); }
+    finally { setIsoLoading(false); }
+  }
+
   /* ── MERCADO CHARTS BLOCK ── */
   const MercadoChartsBlock=()=>{
     if(!mpData) return null;
     const comps=mpData.competencia||[];
     const tipos=mpData.tipologias||[];
-    return (
+  return (
       <div style={{display:"flex",flexDirection:"column" as const,gap:14}}>
         {/* Badge compatibilidad */}
         {res.analisis?.producto_compatible!=null&&(
@@ -455,7 +502,50 @@ export default function Page(){
                     const pxm2=Math.round((c.precio_desde+c.precio_hasta)/2/m2avg||c.precio_desde/m2avg||0);
                     const maxPx=Math.max(...comps.filter((x:any)=>x.precio_desde>0&&x.m2_min>0).map((x:any)=>{
                       const m=(x.m2_min+x.m2_max)/2||x.m2_min||60;
-                      return (x.precio_desde+x.precio_hasta)/2/m;
+                    
+  async function generarIsometrico() {
+    if(!res||!res.analisis) return;
+    setIsoLoading(true);
+    setIsoHtml(null);
+    try {
+      const vt  = res.analisis.viabilidad_tecnica||{};
+      const lin = res.lineamientos||{};
+      const fin = res.analisis.financiero||{};
+      const m2     = res.terreno?.metros2||300;
+      const cos    = parseFloat(lin.cos)||0.6;
+      const cus    = parseFloat(lin.cus)||2.4;
+      const frente = vt.frente_m||vt.frente_estimado_m||Math.round(Math.sqrt(m2*0.6));
+      const fondo  = vt.fondo_m||Math.round(m2/frente);
+      const huella = lin.huella_max_m2||Math.round(m2*cos);
+      const niveles= Math.max(1,Math.round(cus/cos));
+
+      const r = await fetch("https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/generar_isometrico",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog"},
+        body:JSON.stringify({
+          frente, fondo, metros2:m2, cos, cus,
+          altura_max:parseFloat(lin.altura_max)||18,
+          niveles,
+          rest_frontal:vt.restriccion_frontal_m||3,
+          rest_lateral:vt.restriccion_lateral_m||0,
+          rest_posterior:vt.restriccion_posterior_m||3,
+          unidades:fin.unidades_reales||lin.unidades_max_pdu||0,
+          zona:res.ubicacion?.zona||"",
+          direccion:res.ubicacion?.direccion||"",
+          huella,
+        })
+      });
+      const d = await r.json();
+      if(d.html&&(d.html.startsWith("<!DOCTYPE")||d.html.startsWith("<html"))) {
+        setIsoHtml(d.html);
+      } else {
+        alert("No se pudo generar el modelo. Intenta de nuevo.");
+      }
+    } catch(e){ alert("Error: "+e); }
+    finally { setIsoLoading(false); }
+  }
+
+  return (x.precio_desde+x.precio_hasta)/2/m;
                     }),1);
                     return {l:(c.nombre||"").split(" ").slice(0,2).join(" "),v:pxm2,c:[BLUE,"#60a5fa",AMBER,"#34d399","#7c3aed"][i%5],max:maxPx};
                   })
@@ -1095,6 +1185,47 @@ export default function Page(){
               )}
             </div>
           )}
+
+          {/* ── BOTÓN + VISOR ISOMÉTRICO 3D ── */}
+          <div style={{marginTop:24,display:"flex",flexDirection:"column" as const,gap:16}}>
+            <button onClick={generarIsometrico} disabled={isoLoading} style={{
+              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+              background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",
+              border:"none",borderRadius:12,padding:"15px 28px",width:"100%",
+              color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",
+              boxShadow:"0 4px 20px rgba(37,99,168,.25)",transition:"all .2s",letterSpacing:".02em",
+            }}>
+              {isoLoading
+                ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>
+                :<>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  Ver Isométrico 3D del Terreno
+                </>
+              }
+            </button>
+
+            {isoHtml&&(
+              <div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a",boxShadow:"0 8px 40px rgba(0,0,0,.15)"}}>
+                <div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)",letterSpacing:".1em"}}>MODELO 3D — {res.ubicacion?.zona}</span>
+                  </div>
+                  <button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button>
+                </div>
+                <iframe srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
+                <div style={{padding:"10px 20px",display:"flex",gap:16,flexWrap:"wrap" as const,borderTop:"1px solid rgba(255,255,255,.06)"}}>
+                  {([["#4a9eff","Volumen edificable"],["#22c55e","Huella máx (COS)"],["#eab308","Restricciones"],["#8B7355","Terreno"]] as [string,string][]).map(([col,lbl])=>(
+                    <div key={lbl} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,.35)"}}>
+                      <div style={{width:9,height:9,borderRadius:2,background:col}}/>
+                      {lbl}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
         </div>
       )}
     </div></>)}
