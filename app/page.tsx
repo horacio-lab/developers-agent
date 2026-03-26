@@ -217,6 +217,22 @@ export default function Page(){
 
   // Cargar sesión al montar y escuchar cambios de auth
   useEffect(()=>{
+    // Restore pending form data after login redirect
+    const pending = localStorage.getItem("ue_pending");
+    if(pending){
+      try{
+        const p = JSON.parse(pending);
+        if(p.dir) setDir(p.dir);
+        if(p.m2) setM2(p.m2);
+        if(p.px) setPx(p.px);
+        if(p.tipo) setTipo(p.tipo);
+        if(p.prod) setProd(p.prod);
+        if(p.frente) setFrente(p.frente);
+        if(p.fondo) setFondo(p.fondo);
+        localStorage.removeItem("ue_pending");
+      }catch(e){}
+    }
+
     supabase.auth.getSession().then(({data:{session}})=>{
       setUserSession(session);
       if(session?.user?.id) cargarPerfil(session.user.id);
@@ -267,7 +283,13 @@ export default function Page(){
       if(frente)body.frente_m=parseFloat(frente);
       if(fondo)body.fondo_m=parseFloat(fondo);
       const token = userSession?.access_token ?? "";
-      if (!token) { setLoading(false); setShowLoginModal(true); return; }
+      if (!token) {
+        setLoading(false);
+        // Save form data so it survives the login redirect
+        localStorage.setItem("ue_pending", JSON.stringify({dir,m2:m2,px,tipo,prod,frente,fondo}));
+        setShowLoginModal(true);
+        return;
+      }
       const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog";
       const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${ANON_KEY}`,"x-user-token":token},body:JSON.stringify(body)});
       const d=await r.json();
@@ -400,7 +422,7 @@ export default function Page(){
             {title:`Giros Permitidos (P) — ${res.giros.total_permitidos}`,items:res.giros.permitidos,col:"#15803d"},
             {title:`Giros Condicionados (C) — ${res.giros.total_condicionados}`,items:res.giros.condicionados||[],col:"#d97706"},
           ].map(g=>(
-            <div key={g.title} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+            <div key={g.title} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
               <div style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:C.light,marginBottom:10}}>{g.title}</div>
               <div style={{maxHeight:290}}>
                 {g.items.map((item:string,i:number)=>(
@@ -527,7 +549,13 @@ export default function Page(){
         }
       }
 
-      // ── Step 3: Expand scrollable elements temporarily ──────────
+      // ── Step 3: Hide fixed background during capture ─────────────
+      const bgEl = document.querySelector('[style*="position: fixed"][style*="pointer-events: none"]') as HTMLElement;
+      const bgEl2 = document.querySelector('[style*="position:fixed"][style*="pointerEvents"]') as HTMLElement;
+      if(bgEl) bgEl.style.display = 'none';
+      if(bgEl2) bgEl2.style.display = 'none';
+
+      // ── Step 4: Expand scrollable elements temporarily ──────────
       const scrollEls = el.querySelectorAll('[style*="overflow"]');
       const savedStyles: {el: HTMLElement, maxH: string, overflowY: string}[] = [];
       scrollEls.forEach((node) => {
@@ -544,7 +572,7 @@ export default function Page(){
         scale:1.5,
         useCORS:true,
         allowTaint:true,
-        backgroundColor:"#F5F2EE",
+        backgroundColor:"#ffffff",
         logging:false,
         windowWidth:Math.min(el.scrollWidth, 1200),
         height:el.scrollHeight,
@@ -553,11 +581,13 @@ export default function Page(){
         y:0,
       });
 
-      // ── Step 5: Restore scrollable elements ──────────────────────
+      // ── Step 5: Restore scrollable elements and background ──────
       savedStyles.forEach(({el: el2, maxH, overflowY}) => {
         el2.style.maxHeight = maxH;
         el2.style.overflowY = overflowY;
       });
+      if(bgEl) bgEl.style.display = '';
+      if(bgEl2) bgEl2.style.display = '';
 
       // ── Step 4: Build PDF pages ──────────────────────────────────
       const imgData=canvas.toDataURL("image/jpeg",0.92);
@@ -631,7 +661,7 @@ export default function Page(){
         {/* Fila 1: Precios + Tipologías */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           {/* Gráfica precios por m² */}
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Precios de mercado — {mpData.tipo||prod} / m²
             </div>
@@ -651,7 +681,7 @@ export default function Page(){
           </div>
 
           {/* Tipologías donut */}
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>Tipologías del mercado</div>
             {tipos.length>0?(
               <>
@@ -680,7 +710,7 @@ export default function Page(){
         {/* Fila 2: Competencia scatter + dispersión precios */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           {/* Competencia scatter */}
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Competencia — tamaño vs precio total
             </div>
@@ -712,7 +742,7 @@ export default function Page(){
           </div>
 
           {/* Dispersión precios horizontal */}
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Dispersión de precios por m² — competencia
             </div>
@@ -796,7 +826,7 @@ export default function Page(){
             <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:8}}>
               Renta promedio local / m² / mes
             </div>
-            <div className="mob-nav-btns" style={{display:"flex",alignItems:"center",gap:12}}>
+            <div className="mob-nav-btns" style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{flex:1,height:32,background:"#F0EBE5",borderRadius:6,overflow:"hidden"}}>
                 <div style={{height:"100%",background:AMBER,borderRadius:6,width:"100%",display:"flex",alignItems:"center",paddingLeft:12}}>
                   <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>${com.precio_renta_m2_mes_local?.toLocaleString("es-MX")}/m²/mes</span>
@@ -1044,10 +1074,7 @@ export default function Page(){
           <img src="/LOGO LETRAS WHITE.png" alt="unearth" className="mob-logo" style={{height:28,width:"auto",display:"block"}}/>
         </button>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div className="mob-nav-pill" style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px"}}>
-              <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
-              <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.7)",letterSpacing:".07em"}}>LIVE DATA</span>
-            </div>
+
             {!userSession&&(
               <button className="mob-nav-btn" onClick={()=>setShowLoginModal(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.1)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.2)",borderRadius:100,padding:"7px 16px",cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600,letterSpacing:".02em"}}>
                 Iniciar sesión
@@ -1063,6 +1090,12 @@ export default function Page(){
             )}
           </div>
         </nav>
+
+        {/* LIVE DATA badge — bottom left */}
+        <div style={{position:"absolute",bottom:16,left:20,zIndex:10,display:"flex",alignItems:"center",gap:5,background:"rgba(0,0,0,.3)",backdropFilter:"blur(8px)",borderRadius:100,padding:"4px 10px",border:"1px solid rgba(255,255,255,.08)"}}>
+          <div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 5px #22c55e"}}/>
+          <span style={{fontSize:9,fontWeight:600,color:"rgba(255,255,255,.45)",letterSpacing:".1em"}}>LIVE DATA</span>
+        </div>
 
         {/* Center content */}
         <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10}}>
