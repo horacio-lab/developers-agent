@@ -238,30 +238,42 @@ export default function Page(){
   const sem=res?.analisis?.semaforo;
   const semCol=sem==="VERDE"?"#15803d":sem==="AMARILLO"?"#d97706":sem==="ROJO"?"#dc2626":null;
 
-  // Normalize market data — handles both "mercado" and "completo" response shapes
-  const rawMp = res?.analisis?.mercado_producto || res?.analisis?.mercado || null;
-  const mp = rawMp ? {
-    tipo:                    rawMp.tipo || prod,
-    precio_venta_m2_min:     rawMp.precio_venta_m2_min    || rawMp.precio_venta_producto_m2 || 0,
-    precio_venta_m2_max:     rawMp.precio_venta_m2_max    || rawMp.precio_venta_producto_m2 || 0,
-    precio_venta_m2_promedio:rawMp.precio_venta_m2_promedio || rawMp.precio_venta_producto_m2 || 0,
-    precio_renta_mensual_m2: rawMp.precio_renta_mensual_m2 || rawMp.precio_renta_m2_mes || rawMp.precio_renta_producto_m2_mes || 0,
-    m2_promedio_unidad:      rawMp.m2_promedio_unidad || 0,
-    absorcion_estimada_meses:rawMp.absorcion_estimada_meses || rawMp.absorcion_meses || 0,
-    demanda:    rawMp.demanda  || "",
-    tendencia:  rawMp.tendencia|| "",
-    proyectos_competencia: (rawMp.proyectos_competencia||[])
+  // Normalize market data — soporta estructura nueva (mercado_residencial) y legacy
+  const rawMercado   = res?.analisis?.mercado || null;
+  // Nueva estructura: mercado.mercado_residencial
+  // Legacy (modo mercado): analisis.mercado_residencial directo
+  const rawRes = rawMercado?.mercado_residencial
+    || res?.analisis?.mercado_residencial
+    || res?.analisis?.mercado_producto   // legacy
+    || rawMercado                        // fallback completo
+    || null;
+  const rawCom = rawMercado?.mercado_comercial
+    || res?.analisis?.mercado_comercial
+    || null;
+
+  const mp = rawRes ? {
+    tipo:                    rawRes.tipo || prod,
+    precio_venta_m2_min:     rawRes.precio_venta_m2_min     || 0,
+    precio_venta_m2_max:     rawRes.precio_venta_m2_max     || 0,
+    precio_venta_m2_promedio:rawRes.precio_venta_m2_promedio|| 0,
+    precio_renta_mensual_m2: rawRes.precio_renta_mensual_m2 || rawRes.precio_renta_m2_mes || 0,
+    m2_promedio_unidad:      rawRes.m2_promedio_unidad       || 0,
+    absorcion_estimada_meses:rawRes.absorcion_estimada_meses || rawRes.absorcion_meses || 0,
+    demanda:   rawRes.demanda   || rawMercado?.demanda   || "",
+    tendencia: rawRes.tendencia || rawMercado?.tendencia || "",
+    proyectos_competencia: (rawRes.proyectos_competencia||[])
       .map((p:any)=>typeof p==="string"?{nombre:p,precio_desde:0,precio_hasta:0,m2_min:0,m2_max:0}:p),
-    tipologias: rawMp.tipologias || [],
+    tipologias: rawRes.tipologias || [],
+    // Datos comerciales (solo mixto)
+    mercado_comercial: rawCom || null,
   } : null;
 
   // Normalize precio terreno
   const rawPt = res?.analisis?.precio_terreno_mercado || null;
-  const rawM  = res?.analisis?.mercado || null;
-  const pt = rawPt ? rawPt : rawM ? {
-    promedio_m2:          rawM.precio_terreno_mercado_m2_promedio || 0,
-    evaluacion_precio:    rawM.evaluacion_precio_terreno || "",
-    porcentaje_diferencia:rawM.porcentaje_sobre_mercado || 0,
+  const pt = rawPt ? rawPt : rawMercado ? {
+    promedio_m2:           rawMercado.precio_terreno_mercado_m2_promedio || 0,
+    evaluacion_precio:     rawMercado.evaluacion_precio_terreno || "",
+    porcentaje_diferencia: rawMercado.porcentaje_sobre_mercado  || 0,
   } : null;
 
   // Recalc financials from raw numbers
@@ -283,15 +295,23 @@ export default function Page(){
 
   // Extract market data
   const rawPot = res?.analisis?.potencial_proyecto || null;
+  // rawPot: nueva estructura está en financiero.modelo_residencial o potencial_proyecto
+  const rawPotResidencial = res?.analisis?.financiero?.modelo_residencial || rawPot || null;
+  const rawPotComercial   = res?.analisis?.financiero?.modelo_comercial   || null;
+
   const mpData = (mp || rawPot || fin) ? {
     ...mp,
-    unidades: rawPot?.unidades_pdu || unidadesMax || 0,
-    m2_unit:  rawPot?.m2_promedio_unidad || mp?.m2_promedio_unidad || fin?.m2_promedio_unidad || 0,
-    pxm2:     rawPot?.precio_venta_m2_promedio || mp?.precio_venta_m2_promedio || fin?.precio_venta_m2_promedio || 0,
-    ing_calc: rawPot?.calculo_detalle || fin?.calculo_ingresos || "",
-    ing_total:rawPot?.ingreso_total_venta || fin?.ingreso_total_estimado || 0,
+    unidades:  rawPot?.unidades_pdu || unidadesMax || 0,
+    m2_unit:   rawPot?.m2_promedio_unidad || mp?.m2_promedio_unidad || fin?.m2_promedio_unidad || 0,
+    pxm2:      rawPot?.precio_venta_m2_promedio || mp?.precio_venta_m2_promedio || fin?.precio_venta_m2_promedio || 0,
+    ing_calc:  rawPot?.calculo_detalle || fin?.calculo_ingresos || "",
+    ing_total: rawPot?.ingreso_total_estimado || rawPot?.ingreso_total_venta || fin?.ingreso_total_estimado || 0,
+    ing_venta_depas:    rawPotResidencial?.ingreso_venta_depas || rawPot?.ingreso_venta_residencial || 0,
+    valor_cap_comercial:rawPotComercial?.valor_capitalizacion  || rawPot?.valor_cap_comercial || 0,
+    noi_anual:          rawPotComercial?.noi_anual             || rawPot?.noi_anual_comercial  || 0,
     competencia: mp?.proyectos_competencia || [],
     tipologias:  mp?.tipologias || [],
+    mercado_comercial: mp?.mercado_comercial || null,
   } : null;
 
   const C={bg:"#F5F2EE",white:"#fff",dark:"#1a1510",blue:BLUE,border:"#EAE5DF",mid:"#7a6f64",light:"#a09888",vl:"#c0b8ae"};
@@ -670,6 +690,60 @@ export default function Page(){
             <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f"}}>{res.analisis.recomendacion}</p>
           </div>
         )}
+      </div>
+    );
+  };
+
+  /* ── MERCADO COMERCIAL BLOCK (solo mixto) ── */
+  const MercadoComercialBlock=()=>{
+    const com=mpData?.mercado_comercial;
+    if(!com)return null;
+    return(
+      <div className="card" style={{marginTop:0}}>
+        <div style={{fontSize:10,fontWeight:700,color:AMBER,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:14}}>
+          Mercado Comercial — Locales en Renta (planta baja)
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:16}}>
+          {[
+            {l:"Renta mensual / m²",v:com.precio_renta_m2_mes_local?`$${com.precio_renta_m2_mes_local?.toLocaleString("es-MX")}/m²/mes`:"—"},
+            {l:"Precio venta / m²",v:com.precio_venta_m2_local?$(com.precio_venta_m2_local):"—"},
+            {l:"Absorción locales",v:com.absorcion_locales_meses?`${com.absorcion_locales_meses} meses`:"—"},
+            {l:"Demanda",v:com.demanda||"—"},
+          ].map(k=>(
+            <div key={k.l} style={{background:"#FFF8F0",borderRadius:10,padding:"13px 15px"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
+              <div style={{fontSize:14,fontWeight:700,color:"#1a1510"}}>{k.v}</div>
+            </div>
+          ))}
+        </div>
+        {/* Gráfica de barra única: renta promedio */}
+        {com.precio_renta_m2_mes_local>0&&(
+          <div style={{marginTop:8}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:8}}>
+              Renta promedio local / m² / mes
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{flex:1,height:32,background:"#F0EBE5",borderRadius:6,overflow:"hidden"}}>
+                <div style={{height:"100%",background:AMBER,borderRadius:6,width:"100%",display:"flex",alignItems:"center",paddingLeft:12}}>
+                  <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>${com.precio_renta_m2_mes_local?.toLocaleString("es-MX")}/m²/mes</span>
+                </div>
+              </div>
+              {mpData?.noi_anual>0&&(
+                <div style={{flexShrink:0,textAlign:"right" as const}}>
+                  <div style={{fontSize:9,color:"#a09888",fontWeight:700}}>NOI ANUAL</div>
+                  <div style={{fontSize:14,fontWeight:700,color:GREEN}}>{$(mpData.noi_anual)}</div>
+                </div>
+              )}
+              {mpData?.valor_cap_comercial>0&&(
+                <div style={{flexShrink:0,textAlign:"right" as const}}>
+                  <div style={{fontSize:9,color:"#a09888",fontWeight:700}}>VALOR CAP (8%)</div>
+                  <div style={{fontSize:14,fontWeight:700,color:BLUE}}>{$(mpData.valor_cap_comercial)}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {com.notas&&<div style={{marginTop:10,fontSize:11,color:"#a09888"}}>{com.notas}</div>}
       </div>
     );
   };
@@ -1179,6 +1253,7 @@ export default function Page(){
           <Header/>
           {/* Orden: mercado primero, luego lineamientos */}
           <MercadoChartsBlock/>
+          <MercadoComercialBlock/>
           <div className="sec-hdr" style={{borderColor:BLUE,marginTop:8}}>
             <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos y Giros Permitidos</div>
           </div>
@@ -1268,6 +1343,7 @@ export default function Page(){
             <div style={{fontSize:11,fontWeight:700,color:AMBER,letterSpacing:".08em",textTransform:"uppercase" as const}}>2 · Estudio de Mercado</div>
           </div>
           <MercadoChartsBlock/>
+          <MercadoComercialBlock/>
 
           {/* Entorno */}
           {res.analisis?.entorno_y_urbanismo&&(
@@ -1399,7 +1475,7 @@ export default function Page(){
                 </div>
                 <iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
                 <div style={{padding:"10px 20px",display:"flex",gap:16,flexWrap:"wrap" as const,borderTop:"1px solid rgba(255,255,255,.06)"}}>
-                  {([["#ffffff","Volumen construido"],["#e74c3c","Restricciones"],["#27ae60","Área Verde (CAV)"],["#333333","Terreno"]] as [string,string][]).map(([col,lbl])=>(
+                  {([["#ffffff","Volumen construido"],["#e74c3c","Restricciones"],["#27ae60","Área Verde (CAV)"],["#8B6340","Área libre / Terreno"]] as [string,string][]).map(([col,lbl])=>(
                     <div key={lbl} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,.35)"}}>
                       <div style={{width:9,height:9,borderRadius:2,background:col}}/>
                       {lbl}
