@@ -416,19 +416,49 @@ export default function Page(){
   async function generarPDF(){
     if(!res)return;
     setPdfLoading(true);
+
+    // Temp image element that replaces the iframe for html2canvas
+    let isoImg:HTMLImageElement|null=null;
+    const iframeEl=iframeRef.current;
+
     try{
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
       const {jsPDF}=(window as any).jspdf;
       const html2canvas=(window as any).html2canvas;
 
-      // Capture the results container
       const el=document.getElementById("results-container");
       if(!el){alert("No hay reporte que exportar.");return;}
 
+      // ── Step 1: Get isometric snapshot via postMessage ──────────
+      if(iframeEl&&isoHtml){
+        const isoData=await new Promise<string|null>((resolve)=>{
+          const handler=(e:MessageEvent)=>{
+            if(e.data?.type==="unearta_snapshot"){
+              window.removeEventListener("message",handler);
+              resolve(e.data.data||null);
+            }
+          };
+          window.addEventListener("message",handler);
+          iframeEl.contentWindow?.postMessage("unearta_capture","*");
+          setTimeout(()=>{window.removeEventListener("message",handler);resolve(null);},3500);
+        });
+
+        // ── Step 2: Replace iframe with <img> so html2canvas can see it
+        if(isoData&&iframeEl.parentElement){
+          isoImg=document.createElement("img");
+          isoImg.src=isoData;
+          isoImg.style.cssText=`width:100%;height:500px;object-fit:cover;display:block;border-radius:0;`;
+          iframeEl.style.display="none";
+          iframeEl.parentElement.insertBefore(isoImg,iframeEl);
+        }
+      }
+
+      // ── Step 3: Capture the full page ───────────────────────────
       const canvas=await html2canvas(el,{
         scale:2,
         useCORS:true,
+        allowTaint:true,
         backgroundColor:"#F5F2EE",
         logging:false,
         windowWidth:el.scrollWidth,
@@ -436,17 +466,15 @@ export default function Page(){
         scrollY:0,
       });
 
+      // ── Step 4: Build PDF pages ──────────────────────────────────
       const imgData=canvas.toDataURL("image/jpeg",0.92);
       const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
       const W=210,H=297;
-      const imgW=W;
       const imgH=(canvas.height*W)/canvas.width;
       let posY=0;
       let remaining=imgH;
-
-      // Split into pages
       while(remaining>0){
-        doc.addImage(imgData,"JPEG",0,posY,imgW,imgH);
+        doc.addImage(imgData,"JPEG",0,posY,W,imgH);
         remaining-=H;
         posY-=H;
         if(remaining>0)doc.addPage();
@@ -457,7 +485,12 @@ export default function Page(){
       doc.save(`unearth_${dir}_${fecha}.pdf`);
 
     }catch(err){console.error(err);alert("Error generando PDF. Intenta de nuevo.");}
-    finally{setPdfLoading(false);}
+    finally{
+      // ── Restore iframe ───────────────────────────────────────────
+      if(isoImg){isoImg.remove();}
+      if(iframeEl){iframeEl.style.display="block";}
+      setPdfLoading(false);
+    }
   }
 
 
