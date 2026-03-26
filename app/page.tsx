@@ -1039,10 +1039,10 @@ export default function Page(){
         </nav>
 
         {/* Center content */}
-        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"flex-start",padding:"16px 24px 32px",position:"relative",zIndex:10,overflowY:"auto" as const}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 20px",position:"relative",zIndex:10}}>
           {/* Logo real grande */}
           <div style={{marginBottom:4,position:"relative"}}>
-            <span style={{display:"inline-block",width:164,height:164,filter:"drop-shadow(0 0 32px rgba(94,168,240,.75))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
+            <span style={{display:"inline-block",width:200,height:200,filter:"drop-shadow(0 0 36px rgba(94,168,240,.8))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
   <g transform="matrix(0.751636,0,0,0.751636,357.522346,8.290459)">
     <path d="M2823.312,1280.588C3311.812,1280.588 3708.412,1677.188 3708.412,2165.688C3708.412,2654.188 3311.812,3050.788 2823.312,3050.788C2334.812,3050.788 1938.212,2654.188 1938.212,2165.688C1938.212,1677.188 2334.812,1280.588 2823.312,1280.588ZM2823.312,1322.164C2357.758,1322.164 1979.788,1700.135 1979.788,2165.688C1979.788,2631.242 2357.758,3009.212 2823.312,3009.212C3288.865,3009.212 3666.836,2631.242 3666.836,2165.688C3666.836,1700.135 3288.865,1322.164 2823.312,1322.164Z" fill="white"/>
   </g>
@@ -1096,20 +1096,6 @@ export default function Page(){
                   <option value="mercado">Estudio de mercado</option>
                   <option value="completo">Análisis completo</option>
                 </select>
-                {/* Description card */}
-                <div style={{marginTop:8,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",borderRadius:10,padding:"10px 12px"}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                    <span style={{fontSize:10,fontWeight:700,letterSpacing:".08em",color:"rgba(180,210,240,.5)",textTransform:"uppercase" as const}}>Incluye</span>
-                    <span style={{fontSize:11,fontWeight:700,color:tipo==="lineamientos"?"#5ea8f0":tipo==="mercado"?"#d97706":"#22c55e"}}>
-                      {tipo==="lineamientos"?"1 crédito":tipo==="mercado"?"2 créditos":"3 créditos"}
-                    </span>
-                  </div>
-                  <div style={{fontSize:11,color:"rgba(200,220,240,.65)",lineHeight:1.5}}>
-                    {tipo==="lineamientos"&&"Zonificación PDU · COS/CUS/CAV/Densidad · Giros permitidos y condicionados."}
-                    {tipo==="mercado"&&"Todo lo de Lineamientos + precios de mercado, competencia activa, absorción y potencial de ingresos del proyecto."}
-                    {tipo==="completo"&&"Todo lo anterior + análisis financiero completo: ROI, TIR, margen, costo de construcción y veredicto GO / NO-GO."}
-                  </div>
-                </div>
               </div>
             </div>
             {needsProd&&(
@@ -1157,6 +1143,37 @@ export default function Page(){
               {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?"#5ea8f0":"rgba(255,255,255,.2)",transform:i===step?"scale(1.5)":"scale(1)",transition:"all .3s"}}/>)}
             </div>}
           </div>
+
+          {/* Analysis type description — outside the form */}
+          <div style={{width:"100%",maxWidth:680,marginTop:10,
+            background:"rgba(255,255,255,.05)",
+            backdropFilter:"blur(12px)",
+            border:"1px solid rgba(255,255,255,.1)",
+            borderRadius:14,
+            padding:"14px 20px",
+            display:"flex",alignItems:"flex-start",gap:14}}>
+            <div style={{width:32,height:32,borderRadius:8,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
+              background:tipo==="lineamientos"?"rgba(94,168,240,.15)":tipo==="mercado"?"rgba(217,119,6,.15)":"rgba(34,197,94,.15)"}}>
+              {tipo==="lineamientos"?"🗺️":tipo==="mercado"?"📊":"📐"}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                <span style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,.85)"}}>
+                  {tipo==="lineamientos"?"Lineamientos urbanísticos":tipo==="mercado"?"Estudio de mercado":"Análisis completo"}
+                </span>
+                <span style={{fontSize:11,fontWeight:700,flexShrink:0,marginLeft:12,
+                  color:tipo==="lineamientos"?"#5ea8f0":tipo==="mercado"?"#d97706":"#22c55e"}}>
+                  {tipo==="lineamientos"?"1 crédito":tipo==="mercado"?"2 créditos":"3 créditos"}
+                </span>
+              </div>
+              <span style={{fontSize:11,color:"rgba(200,220,240,.55)",lineHeight:1.5}}>
+                {tipo==="lineamientos"&&"Zonificación PDU · COS/CUS/CAV/Densidad · Giros permitidos y condicionados del predio."}
+                {tipo==="mercado"&&"Todo lo anterior + precios reales de mercado, competencia activa en la zona, absorción y potencial de ingresos."}
+                {tipo==="completo"&&"Todo lo anterior + financiero completo: ROI, TIR, margen, costo de construcción y veredicto GO / NO-GO."}
+              </span>
+            </div>
+          </div>
+
         </div>
       </div>
     )}
@@ -1630,7 +1647,7 @@ export default function Page(){
 
               {/* Symbol */}
               <div style={{textAlign:"center" as const,marginBottom:20}}>
-                <span style={{display:"inline-block",width:72,height:72,filter:"drop-shadow(0 0 20px rgba(94,168,240,.6))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
+                <span style={{display:"inline-block",width:100,height:100,filter:"drop-shadow(0 0 28px rgba(94,168,240,.7))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
   <g transform="matrix(0.751636,0,0,0.751636,357.522346,8.290459)">
     <path d="M2823.312,1280.588C3311.812,1280.588 3708.412,1677.188 3708.412,2165.688C3708.412,2654.188 3311.812,3050.788 2823.312,3050.788C2334.812,3050.788 1938.212,2654.188 1938.212,2165.688C1938.212,1677.188 2334.812,1280.588 2823.312,1280.588ZM2823.312,1322.164C2357.758,1322.164 1979.788,1700.135 1979.788,2165.688C1979.788,2631.242 2357.758,3009.212 2823.312,3009.212C3288.865,3009.212 3666.836,2631.242 3666.836,2165.688C3666.836,1700.135 3288.865,1322.164 2823.312,1322.164Z" fill="white"/>
   </g>
@@ -1648,7 +1665,7 @@ export default function Page(){
 
               {/* Title */}
               <div style={{textAlign:"center" as const,marginBottom:28}}>
-                <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:30,color:"#fff",lineHeight:1.15,marginBottom:6}}>
+                <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:"#fff",lineHeight:1.15,marginBottom:6}}>
                   Bienvenido{welcomeName?`, ${welcomeName.split(" ")[0]}`:""}
                 </div>
                 <div style={{fontSize:13,color:"rgba(200,220,240,.55)",lineHeight:1.6}}>Tu asistente de análisis inmobiliario está listo.</div>
