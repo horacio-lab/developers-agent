@@ -8,6 +8,20 @@ type Tipo = "lineamientos"|"mercado"|"completo";
 const $   = (n:any,m="c")=>n!=null&&!isNaN(+n)?(m==="c"?new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(+n):new Intl.NumberFormat("es-MX",{maximumFractionDigits:0}).format(+n)):"—";
 const pct = (n:any)=>n!=null&&!isNaN(+n)?`${(+n).toFixed(1)}%`:"—";
 const STEPS=["Geocodificando…","Buscando zona…","Consultando PDU…","Investigando mercado…","Generando reporte…"];
+const TIPS=[
+  {tag:"Art. 36 · PDU",txt:"Las densidades y lineamientos urbanísticos del PDU definen el aprovechamiento máximo de cada predio. Un terreno en CAI puede construir hasta CUS 10 si supera los 1,000 m²."},
+  {tag:"Art. 44 · Reg. Zonificación",txt:"En predios sobre Corredores de Alto Impacto, la altura y densidad se calculan considerando un área de influencia de 100 metros de profundidad desde la vialidad."},
+  {tag:"Art. 48 · Reg. Zonificación",txt:"Las áreas de estacionamiento subterráneo están exentas del CUS. Esta estrategia permite liberar metros construibles para uso habitable o comercial."},
+  {tag:"Art. 45 BIS · Reg. Zonificación",txt:"Un predio frente a una vialidad subcolectora clasificado como Corredor Urbano puede aplicar tanto los lineamientos del corredor como los de la zona base, eligiendo los más convenientes."},
+  {tag:"Art. 73 · Reg. Zonificación",txt:"Los predios mayores a 2,000 m² dentro de la zona DOT (a 800m de estaciones de metro) pueden incrementar CUS hasta 100% y reducir requerimiento de cajones de estacionamiento en 50%."},
+  {tag:"Art. 40 · Reg. Zonificación",txt:"La superficie mínima de lote para vivienda multifamiliar dúplex vertical es de 140 m². Para triplex, 180 m². Este requisito puede condicionar la viabilidad en terrenos pequeños."},
+  {tag:"Art. 52 · Reg. Zonificación",txt:"Cada cajón de estacionamiento en batería mide mínimo 5.00 × 2.70 m. Hasta un 25% puede ser para autos compactos con dimensiones de 4.50 × 2.50 m."},
+  {tag:"Art. 102 · Reg. Zonificación",txt:"Proyectos habitacionales multifamiliares que requieran más de 25 cajones de estacionamiento deben presentar Estudio de Impacto Vial ante la Secretaría de Desarrollo Urbano."},
+  {tag:"Art. 31 · Reg. Zonificación",txt:"En predios clasificados como Comercio de Barrio se permite la vivienda multifamiliar, tiendas de especialidades y locales comerciales agrupados, aplicando lineamientos de la zona donde se ubiquen."},
+  {tag:"Art. 35 BIS · Reg. Zonificación",txt:"Las suites ejecutivas y casas de huéspedes pueden instalarse en zonas HM, HML, HMM y HMI cuando se ubiquen a menos de 500 metros de hospitales, universidades o centros de convenciones."},
+  {tag:"Cuadro 21 · PDU",txt:"La densidad máxima en Subcentros Urbanos es de 150 viviendas por hectárea, con CUS de 5 para terrenos menores a 1,000 m² y CUS de 10 para terrenos mayores — el doble de aprovechamiento."},
+  {tag:"Art. 39 · Reg. Zonificación",txt:"La altura máxima de un edificio se mide desde el punto más alto del terreno hasta la parte superior de la losa. Los tanques de agua, cubos de elevadores y equipos no cuentan en esa medición."},
+];
 const BLUE="#2563a8", AMBER="#d97706", GREEN="#15803d";
 
 /* ══════════════════════════════════════════════════════
@@ -184,9 +198,16 @@ export default function Page(){
   const [step,setStep]=useState(0);
   const [isoLoading,setIsoLoading]=useState(false);
   const [isoHtml,setIsoHtml]=useState<string|null>(null);
- const [loading,setLoading]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [tipIdx,setTipIdx]=useState(0);
   const [res,setRes]=useState<any>(null); const [err,setErr]=useState("");
   const needsProd=tipo==="mercado"||tipo==="completo";
+
+  useEffect(()=>{
+    if(!loading)return;
+    const iv=setInterval(()=>setTipIdx(i=>(i+1)%TIPS.length),4200);
+    return()=>clearInterval(iv);
+  },[loading]);
 
   async function run(){
     if(!dir||!m2||!px){setErr("Completa todos los campos.");return;}
@@ -339,11 +360,20 @@ export default function Page(){
       const fondo  = parseFloat(vt.fondo_m) || Math.round(m2/frente);
       const huella = lin.huella_max_m2||Math.round(m2*cos);
       
-      // ✅ FIX: Lee niveles_posibles del reporte en lugar de calcular con cus/cos
+      // Altura libre = 12 pisos como default visual en isométrico
+      const alturaMaxStr = String(lin.altura_max || "");
+      const esAlturaLibre = /libre|según dictamen|dictamen/i.test(alturaMaxStr) || alturaMaxStr === "N/D";
       const niveles = (() => {
+        if (esAlturaLibre) return 12;
+        // Intentar leer de niveles_posibles (análisis completo)
         const nivStr = vt.niveles_posibles || "";
-        const match = nivStr.match(/(\d+)\s*nivel/i);
-        return match ? parseInt(match[1]) : Math.max(1, Math.round(cus/cos));
+        const mNiv = nivStr.match(/(\d+)\s*nivel/i);
+        if (mNiv) return parseInt(mNiv[1]);
+        // Leer de altura_max directamente: "12 niveles / 48 m"
+        const mAlt = alturaMaxStr.match(/(\d+)\s*nivel/i);
+        if (mAlt) return parseInt(mAlt[1]);
+        // Fallback: cus/cos
+        return Math.max(1, Math.round(cus/cos));
       })();
 
       const r = await fetch("https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/generar_isometrico",{
@@ -611,6 +641,90 @@ export default function Page(){
       .fg option{background:#0f2240;color:#fff;}
       @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
     `}</style>
+
+    {/* ════════════════════════════════════════════
+        LOADING — pantalla completa glassmorphism
+    ════════════════════════════════════════════ */}
+    {loading&&(
+      <div style={{position:"fixed",inset:0,zIndex:100,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
+        {/* Mismo fondo que el hero */}
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg, #0a1628 0%, #0f2240 40%, #0d2d3a 70%, #0a1e28 100%)"}}>
+          <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.18}} xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="gl" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="#4a9ebb" strokeWidth=".6"/></pattern>
+              <pattern id="gl2" width="300" height="300" patternUnits="userSpaceOnUse"><path d="M 300 0 L 0 0 0 300" fill="none" stroke="#4a9ebb" strokeWidth="1.2"/></pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#gl)"/>
+            <rect width="100%" height="100%" fill="url(#gl2)"/>
+            <line x1="0" y1="38%" x2="100%" y2="35%" stroke="#5bb8d4" strokeWidth="1.5" opacity=".5"/>
+            <line x1="0" y1="62%" x2="100%" y2="65%" stroke="#5bb8d4" strokeWidth="1" opacity=".4"/>
+            <line x1="22%" y1="0" x2="18%" y2="100%" stroke="#5bb8d4" strokeWidth="1.5" opacity=".5"/>
+            <line x1="55%" y1="0" x2="52%" y2="100%" stroke="#5bb8d4" strokeWidth="1" opacity=".4"/>
+            <rect x="24%" y="20%" width="8%" height="12%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
+            <rect x="58%" y="42%" width="10%" height="14%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
+          </svg>
+          <div style={{position:"absolute",top:"20%",left:"30%",width:500,height:500,background:"radial-gradient(circle, rgba(37,99,168,.2) 0%, transparent 70%)",transform:"translate(-50%,-50%)"}}/>
+          <div style={{position:"absolute",bottom:"20%",right:"20%",width:350,height:350,background:"radial-gradient(circle, rgba(20,120,140,.18) 0%, transparent 70%)"}}/>
+        </div>
+
+        {/* Glassmorphism card */}
+        <div style={{position:"relative",zIndex:2,width:"min(520px,90vw)",display:"flex",flexDirection:"column" as const,alignItems:"center",gap:32,padding:"44px 40px",background:"rgba(15,34,64,.55)",border:"1px solid rgba(94,168,240,.18)",borderRadius:24,backdropFilter:"blur(20px)",boxShadow:"0 8px 60px rgba(0,0,0,.5)"}}>
+
+          {/* Animated logo mark */}
+          <div style={{position:"relative",width:64,height:64}}>
+            <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"1.5px solid rgba(94,168,240,.25)",animation:"orbit 3s linear infinite"}}/>
+            <div style={{position:"absolute",inset:6,borderRadius:"50%",border:"1.5px solid rgba(94,168,240,.15)",animation:"orbit 5s linear infinite reverse"}}/>
+            <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+
+          {/* Step label */}
+          <div style={{textAlign:"center" as const}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".15em",color:"rgba(94,168,240,.6)",textTransform:"uppercase" as const,marginBottom:8}}>
+              Analizando terreno
+            </div>
+            <div style={{fontSize:18,fontWeight:600,color:"#fff",letterSpacing:"-.01em",minHeight:28,transition:"all .3s"}}>
+              {STEPS[step]}
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{width:"100%",display:"flex",flexDirection:"column" as const,gap:10}}>
+            <div style={{width:"100%",height:4,borderRadius:99,background:"rgba(255,255,255,.08)",overflow:"hidden"}}>
+              <div style={{height:"100%",borderRadius:99,background:"linear-gradient(90deg,#2563a8,#5ea8f0)",width:`${((step+1)/STEPS.length)*100}%`,transition:"width .7s ease"}}/>
+            </div>
+            {/* Step dots */}
+            <div style={{display:"flex",justifyContent:"space-between",padding:"0 2px"}}>
+              {STEPS.map((_,i)=>(
+                <div key={i} style={{display:"flex",flexDirection:"column" as const,alignItems:"center",gap:4}}>
+                  <div style={{width:8,height:8,borderRadius:"50%",background:i<step?"#5ea8f0":i===step?"#fff":"rgba(255,255,255,.15)",boxShadow:i===step?"0 0 8px #5ea8f0":undefined,transition:"all .3s"}}/>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Rotating tip */}
+          <div style={{width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid rgba(94,168,240,.12)",borderRadius:14,padding:"18px 20px",minHeight:110,display:"flex",flexDirection:"column" as const,gap:8,transition:"all .4s"}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:"#5ea8f0",flexShrink:0}}/>
+              <span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",letterSpacing:".1em",textTransform:"uppercase" as const}}>{TIPS[tipIdx].tag}</span>
+            </div>
+            <p style={{fontSize:13,color:"rgba(255,255,255,.7)",lineHeight:1.7,margin:0}}>{TIPS[tipIdx].txt}</p>
+          </div>
+
+          {/* Tip counter dots */}
+          <div style={{display:"flex",gap:5}}>
+            {TIPS.map((_,i)=>(
+              <div key={i} style={{width:i===tipIdx?18:5,height:5,borderRadius:99,background:i===tipIdx?"#5ea8f0":"rgba(255,255,255,.12)",transition:"all .4s"}}/>
+            ))}
+          </div>
+
+        </div>
+      </div>
+    )}
 
     {/* ════════════════════════════════════════════
         HERO — full viewport glassmorphism landing
@@ -1178,7 +1292,7 @@ export default function Page(){
                 </div>
                 <iframe srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
                 <div style={{padding:"10px 20px",display:"flex",gap:16,flexWrap:"wrap" as const,borderTop:"1px solid rgba(255,255,255,.06)"}}>
-                  {([["#4a9eff","Volumen edificable"],["#22c55e","Huella máx (COS)"],["#eab308","Restricciones"],["#8B7355","Terreno"]] as [string,string][]).map(([col,lbl])=>(
+                  {([["#ffffff","Volumen construido"],["#e74c3c","Restricciones"],["#27ae60","Área Verde (CAV)"],["#333333","Terreno"]] as [string,string][]).map(([col,lbl])=>(
                     <div key={lbl} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,.35)"}}>
                       <div style={{width:9,height:9,borderRadius:2,background:col}}/>
                       {lbl}
