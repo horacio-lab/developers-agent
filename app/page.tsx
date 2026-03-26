@@ -1060,7 +1060,14 @@ export default function Page(){
         {needsProd&&(
           <div style={{marginBottom:12}}>
             <label className="lbl">¿Qué quieres construir?</label>
-            <input className="f" value={prod} onChange={e=>setProd(e.target.value)} disabled={loading} placeholder="departamentos, casas, locales comerciales, oficinas…"/>
+            <select className="f" value={prod} onChange={e=>setProd(e.target.value)} disabled={loading} style={{cursor:"pointer"}}>
+              <option value="">Selecciona un producto…</option>
+              <option value="Departamentos">Departamentos</option>
+              <option value="Casas / Townhouses">Casas / Townhouses</option>
+              <option value="Uso Mixto (depas + comercio)">Uso Mixto (depas + comercio)</option>
+              <option value="Locales comerciales">Locales comerciales</option>
+              <option value="Oficinas">Oficinas</option>
+            </select>
           </div>
         )}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
