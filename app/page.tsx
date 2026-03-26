@@ -230,22 +230,19 @@ export default function Page(){
   },[]);
 
   async function cargarPerfil(userId:string, isNew=false){
-    const [{data:perfil},{data:reportes},{data:authUser}] = await Promise.all([
+    const [{data:perfil},{data:reportes}] = await Promise.all([
       supabase.from("profiles").select("creditos,nombre,total_reportes").eq("id",userId).single(),
       supabase.from("reportes").select("id,direccion,tipo_analisis,semaforo,veredicto,creditos_usados,created_at,resultado").eq("user_id",userId).order("created_at",{ascending:false}).limit(20),
-      supabase.auth.getUser(),
     ]);
     if(perfil) setCreditos(perfil.creditos);
     if(reportes) setHistorial(reportes);
-    // Show welcome on first login (no reports yet) or explicit new user flag
     if(isNew || (perfil && perfil.total_reportes===0 && reportes?.length===0)){
-      const name = perfil?.nombre
-        || authUser?.data?.user?.user_metadata?.full_name
-        || authUser?.data?.user?.user_metadata?.name
-        || authUser?.data?.user?.email?.split("@")[0]
+      const name = (perfil as any)?.nombre
+        || userSession?.user?.user_metadata?.full_name
+        || userSession?.user?.user_metadata?.name
+        || userSession?.user?.email?.split("@")[0]
         || "";
       setWelcomeName(name);
-      // Only show once per session
       if(!sessionStorage.getItem("welcomed")){
         setShowWelcome(true);
         sessionStorage.setItem("welcomed","1");
