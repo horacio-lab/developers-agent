@@ -567,7 +567,7 @@ export default function Page(){
         scrollY:0,
         x:0,
         y:0,
-        onclone:(clonedDoc)=>{
+        onclone:(clonedDoc: Document)=>{
           // In the cloned doc, make giros lists expand fully
           clonedDoc.querySelectorAll('[style*="overflow"]').forEach((node)=>{
             const el2 = node as HTMLElement;
