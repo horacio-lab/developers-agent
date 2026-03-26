@@ -196,6 +196,8 @@ export default function Page(){
   const [userSession, setUserSession] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeName, setWelcomeName] = useState("");
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [creditos, setCreditos] = useState<number|null>(null);
   const [historial, setHistorial] = useState<any[]>([]);
@@ -227,13 +229,28 @@ export default function Page(){
     return()=>subscription.unsubscribe();
   },[]);
 
-  async function cargarPerfil(userId:string){
-    const [{data:perfil},{data:reportes}] = await Promise.all([
-      supabase.from("profiles").select("creditos").eq("id",userId).single(),
+  async function cargarPerfil(userId:string, isNew=false){
+    const [{data:perfil},{data:reportes},{data:authUser}] = await Promise.all([
+      supabase.from("profiles").select("creditos,nombre,total_reportes").eq("id",userId).single(),
       supabase.from("reportes").select("id,direccion,tipo_analisis,semaforo,veredicto,creditos_usados,created_at,resultado").eq("user_id",userId).order("created_at",{ascending:false}).limit(20),
+      supabase.auth.getUser(),
     ]);
     if(perfil) setCreditos(perfil.creditos);
     if(reportes) setHistorial(reportes);
+    // Show welcome on first login (no reports yet) or explicit new user flag
+    if(isNew || (perfil && perfil.total_reportes===0 && reportes?.length===0)){
+      const name = perfil?.nombre
+        || authUser?.data?.user?.user_metadata?.full_name
+        || authUser?.data?.user?.user_metadata?.name
+        || authUser?.data?.user?.email?.split("@")[0]
+        || "";
+      setWelcomeName(name);
+      // Only show once per session
+      if(!sessionStorage.getItem("welcomed")){
+        setShowWelcome(true);
+        sessionStorage.setItem("welcomed","1");
+      }
+    }
   }
 
   useEffect(()=>{
@@ -1025,10 +1042,10 @@ export default function Page(){
         </nav>
 
         {/* Center content */}
-        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 60px",position:"relative",zIndex:10}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"flex-start",padding:"16px 24px 32px",position:"relative",zIndex:10,overflowY:"auto" as const}}>
           {/* Logo real grande */}
-          <div style={{marginBottom:8,position:"relative"}}>
-            <span style={{display:"inline-block",width:130,height:130,filter:"drop-shadow(0 0 26px rgba(94,168,240,.65))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
+          <div style={{marginBottom:4,position:"relative"}}>
+            <span style={{display:"inline-block",width:164,height:164,filter:"drop-shadow(0 0 32px rgba(94,168,240,.75))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
   <g transform="matrix(0.751636,0,0,0.751636,357.522346,8.290459)">
     <path d="M2823.312,1280.588C3311.812,1280.588 3708.412,1677.188 3708.412,2165.688C3708.412,2654.188 3311.812,3050.788 2823.312,3050.788C2334.812,3050.788 1938.212,2654.188 1938.212,2165.688C1938.212,1677.188 2334.812,1280.588 2823.312,1280.588ZM2823.312,1322.164C2357.758,1322.164 1979.788,1700.135 1979.788,2165.688C1979.788,2631.242 2357.758,3009.212 2823.312,3009.212C3288.865,3009.212 3666.836,2631.242 3666.836,2165.688C3666.836,1700.135 3288.865,1322.164 2823.312,1322.164Z" fill="white"/>
   </g>
@@ -1044,10 +1061,10 @@ export default function Page(){
 </svg></span>
           </div>
 
-          <h2 style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(28px,4vw,52px)",lineHeight:1.1,color:"#fff",marginBottom:16,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
+          <h2 style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(26px,3.5vw,48px)",lineHeight:1.1,color:"#fff",marginBottom:10,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
             Unearth your next<br/><em style={{color:"#5ea8f0",fontStyle:"italic"}}>development.</em>
           </h2>
-          <p style={{fontSize:16,color:"rgba(200,220,240,.7)",lineHeight:1.7,maxWidth:400,margin:"0 auto 40px",textAlign:"center" as const}}>
+          <p style={{fontSize:14,color:"rgba(200,220,240,.7)",lineHeight:1.6,maxWidth:400,margin:"0 auto 20px",textAlign:"center" as const}}>
             Dirección, metros y precio — análisis de zonificación, mercado y financiero en segundos.
           </p>
 
@@ -1082,11 +1099,19 @@ export default function Page(){
                   <option value="mercado">Estudio de mercado</option>
                   <option value="completo">Análisis completo</option>
                 </select>
-                <div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}>
-                  <div style={{width:6,height:6,borderRadius:"50%",background:tipo==="lineamientos"?"#5ea8f0":tipo==="mercado"?"#d97706":"#22c55e",flexShrink:0}}/>
-                  <span style={{fontSize:11,color:"rgba(180,210,240,.6)",fontWeight:600}}>
-                    {tipo==="lineamientos"?"1 crédito":tipo==="mercado"?"2 créditos":"3 créditos"} · {tipo==="lineamientos"?"Zonificación y giros PDU":tipo==="mercado"?"Mercado + zonificación":"Análisis completo con financiero"}
-                  </span>
+                {/* Description card */}
+                <div style={{marginTop:8,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",borderRadius:10,padding:"10px 12px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <span style={{fontSize:10,fontWeight:700,letterSpacing:".08em",color:"rgba(180,210,240,.5)",textTransform:"uppercase" as const}}>Incluye</span>
+                    <span style={{fontSize:11,fontWeight:700,color:tipo==="lineamientos"?"#5ea8f0":tipo==="mercado"?"#d97706":"#22c55e"}}>
+                      {tipo==="lineamientos"?"1 crédito":tipo==="mercado"?"2 créditos":"3 créditos"}
+                    </span>
+                  </div>
+                  <div style={{fontSize:11,color:"rgba(200,220,240,.65)",lineHeight:1.5}}>
+                    {tipo==="lineamientos"&&"Zonificación PDU · COS/CUS/CAV/Densidad · Giros permitidos y condicionados."}
+                    {tipo==="mercado"&&"Todo lo de Lineamientos + precios de mercado, competencia activa, absorción y potencial de ingresos del proyecto."}
+                    {tipo==="completo"&&"Todo lo anterior + análisis financiero completo: ROI, TIR, margen, costo de construcción y veredicto GO / NO-GO."}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1576,6 +1601,96 @@ export default function Page(){
       </div>{/* results-container */}
     </div></div>)}
 
+
+      {/* ════ MODAL BIENVENIDA ════ */}
+      {showWelcome&&(
+        <>
+          <div onClick={()=>setShowWelcome(false)} style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.6)",backdropFilter:"blur(6px)"}}/>
+          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+            width:"min(520px,92vw)",
+            background:"rgba(10,22,40,.92)",
+            backdropFilter:"blur(32px)",
+            WebkitBackdropFilter:"blur(32px)",
+            borderRadius:24,
+            border:"1px solid rgba(94,168,240,.2)",
+            boxShadow:"0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(94,168,240,.08)",
+            overflow:"hidden" as const}}>
+
+            {/* Grid background inside modal */}
+            <div style={{position:"absolute",inset:0,opacity:.12,pointerEvents:"none"}}>
+              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <pattern id="wg" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#4a9ebb" strokeWidth=".6"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#wg)"/>
+              </svg>
+            </div>
+            <div style={{position:"absolute",top:"30%",left:"50%",width:400,height:400,background:"radial-gradient(circle, rgba(37,99,168,.2) 0%, transparent 70%)",transform:"translate(-50%,-50%)",pointerEvents:"none"}}/>
+
+            <div style={{position:"relative",zIndex:1,padding:"40px 36px 32px"}}>
+
+              {/* Symbol */}
+              <div style={{textAlign:"center" as const,marginBottom:20}}>
+                <span style={{display:"inline-block",width:72,height:72,filter:"drop-shadow(0 0 20px rgba(94,168,240,.6))"}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
+  <g transform="matrix(0.751636,0,0,0.751636,357.522346,8.290459)">
+    <path d="M2823.312,1280.588C3311.812,1280.588 3708.412,1677.188 3708.412,2165.688C3708.412,2654.188 3311.812,3050.788 2823.312,3050.788C2334.812,3050.788 1938.212,2654.188 1938.212,2165.688C1938.212,1677.188 2334.812,1280.588 2823.312,1280.588ZM2823.312,1322.164C2357.758,1322.164 1979.788,1700.135 1979.788,2165.688C1979.788,2631.242 2357.758,3009.212 2823.312,3009.212C3288.865,3009.212 3666.836,2631.242 3666.836,2165.688C3666.836,1700.135 3288.865,1322.164 2823.312,1322.164Z" fill="white"/>
+  </g>
+  <g transform="matrix(1.951872,-0.447186,0.447186,1.951872,-2935.660556,891.126125)">
+    <path d="M2094,1081C2094,1081 1845.397,1385.126 2185,1211.821C2434.232,1084.634 3079.015,737.886 3115.878,627.72C3144.998,540.693 2999.054,550.138 2804.743,648" stroke="#5ea8f0" strokeWidth="20.81" strokeLinecap="round" fill="none"/>
+  </g>
+  <g transform="matrix(0.663165,1.889442,-1.889442,0.663165,2660.72479,-3818.272822)">
+    <path d="M2094,1081C2094,1081 1845.397,1385.126 2185,1211.821C2434.232,1084.634 3079.015,737.886 3115.878,627.72C3144.998,540.693 2999.054,550.138 2804.743,648" stroke="#5ea8f0" strokeWidth="20.81" strokeLinecap="round" fill="none"/>
+  </g>
+  <g transform="matrix(1.930173,-0.533117,0.533117,1.930173,-2359.786435,1704.552736)">
+    <circle cx="2060.234" cy="197" r="54" fill="#5ea8f0"/>
+  </g>
+</svg></span>
+              </div>
+
+              {/* Title */}
+              <div style={{textAlign:"center" as const,marginBottom:28}}>
+                <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:30,color:"#fff",lineHeight:1.15,marginBottom:6}}>
+                  Bienvenido{welcomeName?`, ${welcomeName.split(" ")[0]}`:""}
+                </div>
+                <div style={{fontSize:13,color:"rgba(200,220,240,.55)",lineHeight:1.6}}>Tu asistente de análisis inmobiliario está listo.</div>
+              </div>
+
+              {/* Features */}
+              <div style={{display:"flex",flexDirection:"column" as const,gap:10,marginBottom:28}}>
+                {[
+                  {icon:"🗺️",title:"Zonificación instantánea",desc:"Identifica uso de suelo, COS/CUS/CAV y giros permitidos según el PDU de Monterrey para cualquier predio."},
+                  {icon:"📊",title:"Estudio de mercado con IA",desc:"Precios reales de venta y renta, proyectos de competencia activos y absorción del mercado en la zona."},
+                  {icon:"📐",title:"Análisis financiero completo",desc:"ROI, TIR, margen bruto, costo de construcción y veredicto GO / NO-GO para tu proyecto inmobiliario."},
+                ].map(f=>(
+                  <div key={f.title} style={{display:"flex",gap:14,alignItems:"flex-start",background:"rgba(255,255,255,.05)",border:"1px solid rgba(94,168,240,.1)",borderRadius:12,padding:"14px 16px"}}>
+                    <span style={{fontSize:20,flexShrink:0,lineHeight:1}}>{f.icon}</span>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:3}}>{f.title}</div>
+                      <div style={{fontSize:12,color:"rgba(200,220,240,.55)",lineHeight:1.5}}>{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Credits badge */}
+              <div style={{background:"rgba(94,168,240,.1)",border:"1px solid rgba(94,168,240,.2)",borderRadius:12,padding:"12px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:12,color:"rgba(200,220,240,.7)"}}>Tienes <strong style={{color:"#5ea8f0"}}>{creditos??3} créditos</strong> para empezar</div>
+                <div style={{display:"flex",gap:4}}>
+                  {Array.from({length:Math.min(creditos??3,3)}).map((_,i)=>(
+                    <div key={i} style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 6px #5ea8f0"}}/>
+                  ))}
+                </div>
+              </div>
+
+              <button onClick={()=>setShowWelcome(false)} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a4d8a,#2563a8,#1a7a8a)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(37,99,168,.4)"}}>
+                Empezar →
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ════ MODAL LOGIN ════ */}
       {showLoginModal&&(
