@@ -194,6 +194,10 @@ function ScatterChart({points,h=200}:{points:{x:number;y:number;label:string;siz
 export default function Page(){
   const supabase = createClient();
   const [userSession, setUserSession] = useState<any>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [creditos, setCreditos] = useState<number|null>(null);
+  const [historial, setHistorial] = useState<any[]>([]);
+  const [reporteAbierto, setReporteAbierto] = useState<any>(null);
   const [dir,setDir]=useState(""); const [m2,setM2]=useState(""); const [px,setPx]=useState("");
   const [frente,setFrente]=useState(""); const [fondo,setFondo]=useState("");
   const [tipo,setTipo]=useState<Tipo>("lineamientos"); const [prod,setProd]=useState("");
@@ -209,10 +213,26 @@ export default function Page(){
 
   // Cargar sesión al montar y escuchar cambios de auth
   useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session}})=>setUserSession(session));
-    const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUserSession(session));
+    supabase.auth.getSession().then(({data:{session}})=>{
+      setUserSession(session);
+      if(session?.user?.id) cargarPerfil(session.user.id);
+    });
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>{
+      setUserSession(session);
+      if(session?.user?.id) cargarPerfil(session.user.id);
+      else { setCreditos(null); setHistorial([]); }
+    });
     return()=>subscription.unsubscribe();
   },[]);
+
+  async function cargarPerfil(userId:string){
+    const [{data:perfil},{data:reportes}] = await Promise.all([
+      supabase.from("profiles").select("creditos").eq("id",userId).single(),
+      supabase.from("reportes").select("id,direccion,tipo_analisis,semaforo,veredicto,creditos_usados,created_at,resultado").eq("user_id",userId).order("created_at",{ascending:false}).limit(20),
+    ]);
+    if(perfil) setCreditos(perfil.creditos);
+    if(reportes) setHistorial(reportes);
+  }
 
   useEffect(()=>{
     if(!loading)return;
@@ -231,9 +251,8 @@ export default function Page(){
       if(frente)body.frente_m=parseFloat(frente);
       if(fondo)body.fondo_m=parseFloat(fondo);
       const token = userSession?.access_token ?? "";
-if (!token) { setErr("Inicia sesión para continuar."); setLoading(false); return; }
-const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog";
-const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${ANON_KEY}`,"x-user-token":token},body:JSON.stringify(body)});
+      if (!token) { setErr("Inicia sesión para continuar."); setLoading(false); return; }
+      const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},body:JSON.stringify(body)});
       const d=await r.json();
       if(d.necesita_producto){setErr("Indica qué quieres construir.");setLoading(false);return;}
       if(d.error_uso_suelo){
@@ -242,7 +261,11 @@ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json
         else setErr(d.error);
         setLoading(false);return;
       }
-      if(d.ok)setRes(d); else setErr(d.error||"Error inesperado.");
+      if(d.ok){
+        setRes(d);
+        // Refrescar créditos e historial
+        if(userSession?.user?.id) cargarPerfil(userSession.user.id);
+      } else setErr(d.error||"Error inesperado.");
     }catch{setErr("Error de conexión.");}
     finally{setLoading(false);}
   }
@@ -947,23 +970,7 @@ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json
 
         {/* NAV over map */}
         <nav style={{position:"relative",zIndex:10,padding:"20px 32px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          {/* Logo real */}
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{display:"inline-block",width:44,height:44}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
-  <g transform="matrix(0.751636,0,0,0.751636,357.522346,8.290459)">
-    <path d="M2823.312,1280.588C3311.812,1280.588 3708.412,1677.188 3708.412,2165.688C3708.412,2654.188 3311.812,3050.788 2823.312,3050.788C2334.812,3050.788 1938.212,2654.188 1938.212,2165.688C1938.212,1677.188 2334.812,1280.588 2823.312,1280.588ZM2823.312,1322.164C2357.758,1322.164 1979.788,1700.135 1979.788,2165.688C1979.788,2631.242 2357.758,3009.212 2823.312,3009.212C3288.865,3009.212 3666.836,2631.242 3666.836,2165.688C3666.836,1700.135 3288.865,1322.164 2823.312,1322.164Z" fill="white"/>
-  </g>
-  <g transform="matrix(1.951872,-0.447186,0.447186,1.951872,-2935.660556,891.126125)">
-    <path d="M2094,1081C2094,1081 1845.397,1385.126 2185,1211.821C2434.232,1084.634 3079.015,737.886 3115.878,627.72C3144.998,540.693 2999.054,550.138 2804.743,648" stroke="#5ea8f0" strokeWidth="20.81" strokeLinecap="round" fill="none"/>
-  </g>
-  <g transform="matrix(0.663165,1.889442,-1.889442,0.663165,2660.72479,-3818.272822)">
-    <path d="M2094,1081C2094,1081 1845.397,1385.126 2185,1211.821C2434.232,1084.634 3079.015,737.886 3115.878,627.72C3144.998,540.693 2999.054,550.138 2804.743,648" stroke="#5ea8f0" strokeWidth="20.81" strokeLinecap="round" fill="none"/>
-  </g>
-  <g transform="matrix(1.930173,-0.533117,0.533117,1.930173,-2359.786435,1704.552736)">
-    <circle cx="2060.234" cy="197" r="54" fill="#5ea8f0"/>
-  </g>
-</svg></span>
-            <span style={{display:"inline-block",height:28,width:148}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
+          <span style={{display:"inline-block",height:36,width:190}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
   <g transform="matrix(0.2963,0,0,0.2963,1690.427598,1587.252321)">
     <g transform="matrix(0.960503,0,0,1,-185.86227,0)">
       <g transform="matrix(4125.249604,0,0,4125.249604,-4705.730796,1681.366567)">
@@ -992,10 +999,19 @@ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json
     </g>
   </g>
 </svg></span>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px"}}>
-            <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
-            <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.7)",letterSpacing:".07em"}}>LIVE DATA</span>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px"}}>
+              <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
+              <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.7)",letterSpacing:".07em"}}>LIVE DATA</span>
+            </div>
+            {userSession&&(
+              <button onClick={()=>setSidebarOpen(true)} style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px",cursor:"pointer",color:"rgba(255,255,255,.8)",fontSize:11,fontWeight:600,letterSpacing:".05em"}}>
+                <div style={{width:22,height:22,borderRadius:"50%",background:"linear-gradient(135deg,#2563a8,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",flexShrink:0}}>
+                  {(userSession.user?.email||"U")[0].toUpperCase()}
+                </div>
+                {creditos!==null&&<span style={{background:"rgba(94,168,240,.2)",borderRadius:100,padding:"2px 8px",fontSize:10,color:"#5ea8f0",fontWeight:700}}>{creditos} cr.</span>}
+              </button>
+            )}
           </div>
         </nav>
 
@@ -1057,6 +1073,12 @@ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json
                   <option value="mercado">Estudio de mercado</option>
                   <option value="completo">Análisis completo</option>
                 </select>
+                <div style={{marginTop:6,display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:tipo==="lineamientos"?"#5ea8f0":tipo==="mercado"?"#d97706":"#22c55e",flexShrink:0}}/>
+                  <span style={{fontSize:11,color:"rgba(180,210,240,.6)",fontWeight:600}}>
+                    {tipo==="lineamientos"?"1 crédito":tipo==="mercado"?"2 créditos":"3 créditos"} · {tipo==="lineamientos"?"Zonificación y giros PDU":tipo==="mercado"?"Mercado + zonificación":"Análisis completo con financiero"}
+                  </span>
+                </div>
               </div>
             </div>
             {needsProd&&(
@@ -1139,22 +1161,7 @@ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json
       </div>
     {/* NAV — compact when showing results */}
     <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 32px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <div style={{display:"flex",alignItems:"center",gap:8}}>
-        <span style={{display:"inline-block",width:36,height:36}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}} fill="none">
-  <g transform="matrix(0.751636,0,0,0.751636,357.522346,8.290459)">
-    <path d="M2823.312,1280.588C3311.812,1280.588 3708.412,1677.188 3708.412,2165.688C3708.412,2654.188 3311.812,3050.788 2823.312,3050.788C2334.812,3050.788 1938.212,2654.188 1938.212,2165.688C1938.212,1677.188 2334.812,1280.588 2823.312,1280.588ZM2823.312,1322.164C2357.758,1322.164 1979.788,1700.135 1979.788,2165.688C1979.788,2631.242 2357.758,3009.212 2823.312,3009.212C3288.865,3009.212 3666.836,2631.242 3666.836,2165.688C3666.836,1700.135 3288.865,1322.164 2823.312,1322.164Z" fill="#1a1510"/>
-  </g>
-  <g transform="matrix(1.951872,-0.447186,0.447186,1.951872,-2935.660556,891.126125)">
-    <path d="M2094,1081C2094,1081 1845.397,1385.126 2185,1211.821C2434.232,1084.634 3079.015,737.886 3115.878,627.72C3144.998,540.693 2999.054,550.138 2804.743,648" stroke="#2563a8" strokeWidth="20.81" strokeLinecap="round" fill="none"/>
-  </g>
-  <g transform="matrix(0.663165,1.889442,-1.889442,0.663165,2660.72479,-3818.272822)">
-    <path d="M2094,1081C2094,1081 1845.397,1385.126 2185,1211.821C2434.232,1084.634 3079.015,737.886 3115.878,627.72C3144.998,540.693 2999.054,550.138 2804.743,648" stroke="#2563a8" strokeWidth="20.81" strokeLinecap="round" fill="none"/>
-  </g>
-  <g transform="matrix(1.930173,-0.533117,0.533117,1.930173,-2359.786435,1704.552736)">
-    <circle cx="2060.234" cy="197" r="54" fill="#2563a8"/>
-  </g>
-</svg></span>
-        <span style={{display:"inline-block",height:22,width:118}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
+      <span style={{display:"inline-block",height:30,width:158}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
   <g transform="matrix(0.2963,0,0,0.2963,1690.427598,1587.252321)">
     <g transform="matrix(0.960503,0,0,1,-185.86227,0)">
       <g transform="matrix(4125.249604,0,0,4125.249604,-4705.730796,1681.366567)">
@@ -1183,8 +1190,17 @@ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json
     </g>
   </g>
 </svg></span>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        <span style={{fontSize:11,fontWeight:500,color:"#c0b8ae",letterSpacing:".07em"}}>MONTERREY MVP</span>
+        {userSession&&(
+          <button onClick={()=>setSidebarOpen(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(37,99,168,.08)",border:"1px solid #EAE5DF",borderRadius:100,padding:"5px 12px",cursor:"pointer",color:"#2563a8",fontSize:11,fontWeight:600}}>
+            <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#2563a8,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>
+              {(userSession.user?.email||"U")[0].toUpperCase()}
+            </div>
+            {creditos!==null&&<span style={{fontWeight:700}}>{creditos} créditos</span>}
+          </button>
+        )}
       </div>
-      <span style={{fontSize:11,fontWeight:500,color:"#c0b8ae",letterSpacing:".07em"}}>MONTERREY MVP</span>
     </header>
 
     <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 28px 100px",width:"100%",position:"relative",zIndex:1}}>
@@ -1552,5 +1568,111 @@ const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json
     </div></div>)}
 
 
+      {/* ════ SIDEBAR ════ */}
+      {sidebarOpen&&(
+        <>
+          {/* Overlay */}
+          <div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,zIndex:40,background:"rgba(0,0,0,.3)",backdropFilter:"blur(2px)"}}/>
+
+          {/* Panel */}
+          <div style={{position:"fixed",top:0,right:0,bottom:0,zIndex:50,width:380,maxWidth:"90vw",
+            background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
+            borderLeft:"1px solid rgba(234,229,223,.8)",
+            boxShadow:"-8px 0 40px rgba(0,0,0,.12)",
+            display:"flex",flexDirection:"column" as const,overflowY:"auto" as const}}>
+
+            {/* Header sidebar */}
+            <div style={{padding:"20px 24px",borderBottom:"1px solid #EAE5DF",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(255,255,255,.6)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#0f2240,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff"}}>
+                  {(userSession?.user?.email||"U")[0].toUpperCase()}
+                </div>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#1a1510"}}>{userSession?.user?.email}</div>
+                  <div style={{fontSize:10,color:"#a09888",marginTop:1}}>Cuenta activa</div>
+                </div>
+              </div>
+              <button onClick={()=>setSidebarOpen(false)} style={{background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+            </div>
+
+            {/* Créditos */}
+            <div style={{margin:"20px 24px 0",background:"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",borderRadius:16,padding:"20px 22px",color:"#fff"}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",color:"rgba(255,255,255,.5)",marginBottom:4}}>CRÉDITOS DISPONIBLES</div>
+              <div style={{fontSize:42,fontWeight:700,lineHeight:1,marginBottom:4}}>{creditos??0}</div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginBottom:16}}>
+                {creditos===0?"Sin créditos — compra más para continuar":creditos===1?"Alcanza para 1 análisis de lineamientos":`Suficiente para ${Math.floor((creditos??0)/3)} análisis completo${Math.floor((creditos??0)/3)!==1?"s":""}`}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:16}}>
+                {[{t:"Lineamientos",c:1,col:"#5ea8f0"},{t:"Mercado",c:2,col:"#d97706"},{t:"Completo",c:3,col:"#22c55e"}].map(x=>(
+                  <div key={x.t} style={{background:"rgba(255,255,255,.08)",borderRadius:8,padding:"8px 10px",textAlign:"center" as const}}>
+                    <div style={{fontSize:16,fontWeight:700,color:x.col}}>{x.c}</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,.45)",marginTop:2}}>{x.t}</div>
+                  </div>
+                ))}
+              </div>
+              <button style={{width:"100%",background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:10,padding:"10px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:".02em"}}>
+                + Comprar créditos — $199 MXN
+              </button>
+            </div>
+
+            {/* Historial */}
+            <div style={{padding:"20px 24px",flex:1}}>
+              <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",color:"#a09888",marginBottom:14}}>HISTORIAL DE REPORTES</div>
+
+              {historial.length===0?(
+                <div style={{textAlign:"center" as const,padding:"32px 0",color:"#c0b8ae"}}>
+                  <div style={{fontSize:28,marginBottom:8}}>📋</div>
+                  <div style={{fontSize:13}}>Aún no tienes reportes</div>
+                  <div style={{fontSize:11,marginTop:4}}>Genera tu primer análisis</div>
+                </div>
+              ):(
+                <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
+                  {historial.map((r:any)=>{
+                    const col=r.semaforo==="VERDE"?"#15803d":r.semaforo==="AMARILLO"?"#d97706":r.semaforo==="ROJO"?"#dc2626":"#a09888";
+                    const fecha=new Date(r.created_at).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});
+                    const tipoLabel=r.tipo_analisis==="lineamientos"?"Lin.":r.tipo_analisis==="mercado"?"Mdo.":"Compl.";
+                    return(
+                      <button key={r.id} onClick={()=>{
+                        if(r.resultado){
+                          const d=r.resultado;
+                          setRes({ok:true,tipo_analisis:r.tipo_analisis,ubicacion:d.ubicacion,terreno:d.terreno,lineamientos:d.lineamientos,giros:d.giros,analisis:d.analisis});
+                          setSidebarOpen(false);
+                        }
+                      }} style={{background:"rgba(255,255,255,.8)",border:"1px solid #EAE5DF",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left" as const,transition:"all .15s"}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:12,fontWeight:600,color:"#1a1510",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.direccion}</div>
+                            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+                              <span style={{fontSize:10,color:"#a09888"}}>{fecha}</span>
+                              <span style={{fontSize:10,background:"#EAE5DF",borderRadius:4,padding:"1px 6px",color:"#7a6f64",fontWeight:600}}>{tipoLabel}</span>
+                              <span style={{fontSize:10,color:"#a09888"}}>{r.creditos_usados} cr.</span>
+                            </div>
+                          </div>
+                          {r.semaforo&&(
+                            <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                              <div style={{width:8,height:8,borderRadius:"50%",background:col,boxShadow:`0 0 6px ${col}`}}/>
+                              <span style={{fontSize:10,fontWeight:700,color:col}}>{r.semaforo}</span>
+                            </div>
+                          )}
+                        </div>
+                        {r.veredicto&&r.tipo_analisis==="completo"&&(
+                          <div style={{marginTop:6,fontSize:11,fontWeight:700,color:col}}>{r.veredicto}</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Cerrar sesión */}
+            <div style={{padding:"16px 24px",borderTop:"1px solid #EAE5DF"}}>
+              <button onClick={async()=>{await supabase.auth.signOut();setSidebarOpen(false);setUserSession(null);setCreditos(null);setHistorial([]);}} style={{width:"100%",background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"10px",color:"#7a6f64",fontSize:13,fontWeight:500,cursor:"pointer"}}>
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </>
+      )}
   </>);
 }
