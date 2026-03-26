@@ -527,7 +527,19 @@ export default function Page(){
         }
       }
 
-      // ── Step 3: Capture the full page ───────────────────────────
+      // ── Step 3: Expand scrollable elements temporarily ──────────
+      const scrollEls = el.querySelectorAll('[style*="overflow"]');
+      const savedStyles: {el: HTMLElement, maxH: string, overflowY: string}[] = [];
+      scrollEls.forEach((node) => {
+        const el2 = node as HTMLElement;
+        if(el2.style.overflowY === 'auto' || el2.style.overflowY === 'scroll'){
+          savedStyles.push({el: el2, maxH: el2.style.maxHeight, overflowY: el2.style.overflowY});
+          el2.style.maxHeight = 'none';
+          el2.style.overflowY = 'visible';
+        }
+      });
+
+      // ── Step 4: Capture the full page ───────────────────────────
       const canvas=await html2canvas(el,{
         scale:1.5,
         useCORS:true,
@@ -539,6 +551,12 @@ export default function Page(){
         scrollY:0,
         x:0,
         y:0,
+      });
+
+      // ── Step 5: Restore scrollable elements ──────────────────────
+      savedStyles.forEach(({el: el2, maxH, overflowY}) => {
+        el2.style.maxHeight = maxH;
+        el2.style.overflowY = overflowY;
       });
 
       // ── Step 4: Build PDF pages ──────────────────────────────────
@@ -581,7 +599,7 @@ export default function Page(){
         {res.analisis?.producto_compatible!=null&&(
           <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 18px",background:res.analisis.producto_compatible?"#F0FDF4":"#FEF2F2",border:`1px solid ${res.analisis.producto_compatible?"#BBF7D0":"#FECACA"}`,borderRadius:12}}>
             <div style={{width:9,height:9,borderRadius:"50%",background:res.analisis.producto_compatible?"#15803d":"#dc2626",flexShrink:0,marginTop:3}}/>
-            <div>
+            <div style={{maxHeight:290,overflowY:"auto" as const}}>
               <span style={{fontSize:13,fontWeight:600,color:res.analisis.producto_compatible?"#15803d":"#dc2626"}}>
                 {res.analisis.producto_compatible?"Producto compatible con la zona":"Producto NO compatible"}
               </span>
@@ -778,7 +796,7 @@ export default function Page(){
             <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:8}}>
               Renta promedio local / m² / mes
             </div>
-            <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div className="mob-nav-btns" style={{display:"flex",alignItems:"center",gap:12}}>
               <div style={{flex:1,height:32,background:"#F0EBE5",borderRadius:6,overflow:"hidden"}}>
                 <div style={{height:"100%",background:AMBER,borderRadius:6,width:"100%",display:"flex",alignItems:"center",paddingLeft:12}}>
                   <span style={{fontSize:13,fontWeight:700,color:"#fff"}}>${com.precio_renta_m2_mes_local?.toLocaleString("es-MX")}/m²/mes</span>
@@ -806,7 +824,7 @@ export default function Page(){
 
   /* ── HEADER NEGRO ── */
   const Header=()=>(
-    <div style={{background:C.dark,borderRadius:16,padding:"22px 28px",marginBottom:20}}>
+    <div className="mob-header-card" style={{background:C.dark,borderRadius:16,padding:"22px 28px",marginBottom:20}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap" as const,gap:12,marginBottom:16}}>
         <div>
           <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.4)",letterSpacing:".1em",marginBottom:6}}>
@@ -821,7 +839,7 @@ export default function Page(){
           </div>
         )}
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+      <div className="mob-header-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
         {[
           {l:"ZONA",v:`${res.ubicacion.zona} · ${res.ubicacion.densidad}`},
           {l:"PRECIO / M² TERRENO",v:$(res.terreno.precio_m2)},
@@ -862,6 +880,37 @@ export default function Page(){
       .fg:focus{border-color:rgba(94,168,240,.7);background:rgba(255,255,255,.12);box-shadow:0 0 0 3px rgba(37,99,168,.2);}
       .fg option{background:#0f2240;color:#fff;}
       @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+      /* ══ MOBILE RESPONSIVE ══ */
+      @media(max-width:640px){
+        /* Nav */
+        .mob-nav{padding:14px 16px !important;}
+        .mob-logo{height:22px !important;}
+        .mob-nav-btns{gap:6px !important;}
+        .mob-nav-btn{padding:5px 10px !important;font-size:10px !important;}
+        .mob-nav-pill{padding:5px 10px !important;font-size:10px !important;}
+
+        /* Hero content */
+        .mob-center{padding:12px 16px 24px !important;}
+        .mob-symbol{width:80px !important;height:80px !important;}
+        .mob-h2{font-size:28px !important;margin-bottom:8px !important;}
+        .mob-subtitle{font-size:13px !important;margin-bottom:16px !important;}
+
+        /* Hero form */
+        .mob-form{padding:20px 16px !important;border-radius:16px !important;}
+        .mob-form .fg{font-size:16px !important;padding:12px !important;}
+        .g3{grid-template-columns:1fr !important;}
+
+        /* Results page */
+        .mob-results-content{padding:16px 12px 80px !important;}
+        .mob-header-card{padding:16px !important;}
+        .mob-header-grid{grid-template-columns:1fr 1fr !important;}
+        .g2{grid-template-columns:1fr !important;}
+        .card{padding:14px 16px !important;}
+
+        /* Sidebar */
+        .mob-sidebar{width:100vw !important;max-width:100vw !important;}
+      }
     `}</style>
 
     {/* ════════════════════════════════════════════
@@ -992,15 +1041,15 @@ export default function Page(){
         {/* NAV over map */}
         <nav style={{position:"relative",zIndex:10,padding:"18px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={()=>{setRes(null);}} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"inline-flex",alignItems:"center",flexShrink:0}}>
-          <img src="/LOGO LETRAS WHITE.png" alt="unearth" style={{height:28,width:"auto",display:"block"}}/>
+          <img src="/LOGO LETRAS WHITE.png" alt="unearth" className="mob-logo" style={{height:28,width:"auto",display:"block"}}/>
         </button>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px"}}>
+            <div className="mob-nav-pill" style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px"}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
               <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.7)",letterSpacing:".07em"}}>LIVE DATA</span>
             </div>
             {!userSession&&(
-              <button onClick={()=>setShowLoginModal(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.1)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.2)",borderRadius:100,padding:"7px 16px",cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600,letterSpacing:".02em"}}>
+              <button className="mob-nav-btn" onClick={()=>setShowLoginModal(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.1)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.2)",borderRadius:100,padding:"7px 16px",cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600,letterSpacing:".02em"}}>
                 Iniciar sesión
               </button>
             )}
@@ -1019,18 +1068,18 @@ export default function Page(){
         <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10}}>
           {/* Logo real grande */}
           <div style={{marginBottom:4,position:"relative"}}>
-            <img src="/LOGO SIMBOLO WHITE.png" alt="" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
+            <img src="/LOGO SIMBOLO WHITE.png" alt="" className="mob-symbol" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
           </div>
 
-          <h2 style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(26px,3.5vw,48px)",lineHeight:1.1,color:"#fff",marginBottom:10,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
+          <h2 className="mob-h2" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(26px,3.5vw,48px)",lineHeight:1.1,color:"#fff",marginBottom:10,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
             Unearth your next<br/><em style={{color:"#5ea8f0",fontStyle:"italic"}}>development.</em>
           </h2>
-          <p style={{fontSize:14,color:"rgba(200,220,240,.7)",lineHeight:1.6,maxWidth:400,margin:"0 auto 20px",textAlign:"center" as const}}>
+          <p className="mob-subtitle" style={{fontSize:14,color:"rgba(200,220,240,.7)",lineHeight:1.6,maxWidth:400,margin:"0 auto 20px",textAlign:"center" as const}}>
             Dirección, metros y precio — análisis de zonificación, mercado y financiero en segundos.
           </p>
 
           {/* GLASSMORPHISM FORM */}
-          <div style={{
+          <div className="mob-form" style={{
             width:"100%",maxWidth:680,
             background:"rgba(255,255,255,.07)",
             backdropFilter:"blur(24px)",
@@ -1189,7 +1238,7 @@ export default function Page(){
       </div>
     </header>
 
-    <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 28px 100px",width:"100%",position:"relative",zIndex:1}}>
+    <div className="mob-results-content" style={{maxWidth:1200,margin:"0 auto",padding:"32px 28px 100px",width:"100%",position:"relative",zIndex:1}}>
 
       {/* COMPACT FORM */}
       <div className="card up" style={{marginBottom:28,borderRadius:18,padding:"20px 28px",boxShadow:"0 2px 16px rgba(0,0,0,.07)"}}>
@@ -1245,7 +1294,7 @@ export default function Page(){
       </div>
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
-      <div id="results-container">
+      <div id="results-container" style={{paddingBottom:8}}>
       {res&&!loading&&res.tipo_analisis==="error_uso_suelo"&&(
         <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
           <Header/>
@@ -1753,7 +1802,7 @@ export default function Page(){
           <div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,zIndex:40,background:"rgba(0,0,0,.3)",backdropFilter:"blur(2px)"}}/>
 
           {/* Panel */}
-          <div style={{position:"fixed",top:0,right:0,bottom:0,zIndex:50,width:380,maxWidth:"90vw",
+          <div style={{position:"fixed",top:0,right:0,bottom:0,zIndex:50,width:380,maxWidth:"min(380px,100vw)",
             background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
             borderLeft:"1px solid rgba(234,229,223,.8)",
             boxShadow:"-8px 0 40px rgba(0,0,0,.12)",
