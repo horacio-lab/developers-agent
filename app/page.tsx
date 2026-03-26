@@ -193,6 +193,7 @@ function ScatterChart({points,h=200}:{points:{x:number;y:number;label:string;siz
 ══════════════════════════════════════════════════════ */
 export default function Page(){
   const supabase = createClient();
+  const [userSession, setUserSession] = useState<any>(null);
   const [dir,setDir]=useState(""); const [m2,setM2]=useState(""); const [px,setPx]=useState("");
   const [frente,setFrente]=useState(""); const [fondo,setFondo]=useState("");
   const [tipo,setTipo]=useState<Tipo>("lineamientos"); const [prod,setProd]=useState("");
@@ -205,6 +206,13 @@ export default function Page(){
   const iframeRef=useRef<HTMLIFrameElement>(null);
   const [res,setRes]=useState<any>(null); const [err,setErr]=useState("");
   const needsProd=tipo==="mercado"||tipo==="completo";
+
+  // Cargar sesión al montar y escuchar cambios de auth
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>setUserSession(session));
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((_,session)=>setUserSession(session));
+    return()=>subscription.unsubscribe();
+  },[]);
 
   useEffect(()=>{
     if(!loading)return;
@@ -222,8 +230,8 @@ export default function Page(){
       if(prod)body.producto_deseado=prod;
       if(frente)body.frente_m=parseFloat(frente);
       if(fondo)body.fondo_m=parseFloat(fondo);
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token ?? "";
+      const token = userSession?.access_token ?? "";
+      if (!token) { setErr("Inicia sesión para continuar."); setLoading(false); return; }
       const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},body:JSON.stringify(body)});
       const d=await r.json();
       if(d.necesita_producto){setErr("Indica qué quieres construir.");setLoading(false);return;}
