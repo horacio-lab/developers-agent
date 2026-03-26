@@ -417,118 +417,49 @@ export default function Page(){
     if(!res)return;
     setPdfLoading(true);
     try{
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
       const {jsPDF}=(window as any).jspdf;
+      const html2canvas=(window as any).html2canvas;
+
+      // Capture the results container
+      const el=document.getElementById("results-container");
+      if(!el){alert("No hay reporte que exportar.");return;}
+
+      const canvas=await html2canvas(el,{
+        scale:2,
+        useCORS:true,
+        backgroundColor:"#F5F2EE",
+        logging:false,
+        windowWidth:el.scrollWidth,
+        height:el.scrollHeight,
+        scrollY:0,
+      });
+
+      const imgData=canvas.toDataURL("image/jpeg",0.92);
       const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
-      const W=210,H=297,ml=18,mr=18,cw=210-18-18;
-      let y=0;
-      const NAVY=[15,34,64] as [number,number,number];
-      const BLUE=[37,99,168] as [number,number,number];
-      const LBLUE=[94,168,240] as [number,number,number];
-      const GREEN=[21,128,61] as [number,number,number];
-      const AMBER=[217,119,6] as [number,number,number];
-      const RED=[220,38,38] as [number,number,number];
-      const BGLIGHT=[245,242,238] as [number,number,number];
-      const BORDER=[234,229,223] as [number,number,number];
-      const DARK=[26,21,16] as [number,number,number];
-      const MID=[122,111,100] as [number,number,number];
-      const addPage=()=>{doc.addPage();y=22;};
-      const secHdr=(text:string,clr=BLUE)=>{
-        if(y>255)addPage();
-        doc.setFillColor(...clr);doc.rect(ml,y,3,5.5,"F");
-        doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(...clr);
-        doc.text(text.toUpperCase(),ml+6,y+4);y+=12;
-      };
-      // HEADER
-      doc.setFillColor(...NAVY);doc.rect(0,0,W,30,"F");
-      doc.setFont("helvetica","bold");doc.setFontSize(20);doc.setTextColor(255,255,255);
-      doc.text("unearta",ml,13);
-      doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(...LBLUE);
-      doc.text("DEVELOPER'S AGENT",ml,20);
-      const tipoLabel=res.tipo_analisis==="lineamientos"?"Lineamientos Urbanísticos":res.tipo_analisis==="mercado"?"Estudio de Mercado":"Análisis Completo";
-      doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(255,255,255);
-      doc.text(tipoLabel,W-mr,11,{align:"right"});
-      doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(160,152,136);
-      doc.text(new Date().toLocaleDateString("es-MX",{year:"numeric",month:"long",day:"numeric"}),W-mr,18,{align:"right"});
-      const sem=res.analisis?.semaforo;
-      if(sem){const sc=sem==="VERDE"?GREEN:sem==="AMARILLO"?AMBER:RED;doc.setFillColor(...sc);doc.circle(W-mr-28,13,3,"F");doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.setTextColor(...sc);doc.text(sem,W-mr-22,14.5);}
-      y=40;
-      // TERRENO
-      secHdr("1 · Datos del Terreno");
-      doc.setFillColor(...BGLIGHT);doc.setDrawColor(...BORDER);doc.roundedRect(ml,y-4,cw,44,3,3,"FD");
-      y=y+4;
-      doc.setFont("helvetica","bold");doc.setFontSize(11);doc.setTextColor(...DARK);doc.text((res.ubicacion?.direccion||"").slice(0,65),ml+5,y);y+=6;
-      doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...MID);
-      doc.text(`${res.ubicacion?.zona||""} · ${res.ubicacion?.densidad||""} · ${(res.ubicacion?.delegacion||"").toUpperCase()}`,ml+5,y);y+=10;
-      const tm=[["Superficie",`${(res.terreno?.metros2||0).toLocaleString("es-MX")} m²`],["Precio total",$(res.terreno?.precio)],["Precio / m²",$(res.terreno?.precio_m2)],["Zona",`${res.ubicacion?.zona||"—"}`]];
-      tm.forEach(([l,v],i)=>{const x=ml+5+(i%2)*(cw/2-2);const iy=y+Math.floor(i/2)*11;doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(...MID);doc.text(l.toUpperCase(),x,iy);doc.setFont("helvetica","bold");doc.setFontSize(10);doc.setTextColor(...DARK);doc.text(v,x,iy+6);});
-      y=y+24+8;
-      // LINEAMIENTOS
-      secHdr("2 · Lineamientos Urbanísticos",[0,60,120]);
-      const lin=res.lineamientos||{};
-      const lr=[["COS",String(lin.cos||"—"),"CUS",String(lin.cus||"—")],["CAV",String(lin.cav||"—"),"Altura máxima",String(lin.altura_max||"—")],["Huella máxima",lin.huella_max_m2?`${lin.huella_max_m2?.toLocaleString("es-MX")} m²`:"—","M² construibles",lin.m2_construibles?`${lin.m2_construibles?.toLocaleString("es-MX")} m²`:"—"],["Unidades máx. PDU",unidadesMax!=null?`${unidadesMax} unidades`:"—","Densidad",`${lin.densidad_max_viv_ha||"—"} viv/Ha`]];
-      lr.forEach(([l1,v1,l2,v2])=>{if(y>265)addPage();doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...MID);doc.text(l1,ml,y);doc.setFont("helvetica","bold");doc.setTextColor(...DARK);doc.text(v1,ml+48,y);doc.setFont("helvetica","normal");doc.setTextColor(...MID);doc.text(l2,ml+cw/2,y);doc.setFont("helvetica","bold");doc.setTextColor(...DARK);doc.text(v2,ml+cw/2+48,y);y+=7;});
-      if(res.giros?.permitidos?.length>0){y+=4;doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(...BLUE);doc.text("Usos permitidos (selección):",ml,y);y+=5;res.giros.permitidos.slice(0,8).forEach((g:string,i:number)=>{const x=ml+(i%2)*(cw/2);const gy=y+Math.floor(i/2)*5;doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(...MID);doc.text(`• ${g.length>46?g.slice(0,46)+"…":g}`,x,gy);});y+=Math.ceil(Math.min(8,res.giros.permitidos.length)/2)*5+4;}
-      y+=6;
-      // MERCADO
-      if((res.tipo_analisis==="mercado"||res.tipo_analisis==="completo")&&mp){
-        if(y>195)addPage();
-        secHdr("3 · Análisis de Mercado",[140,90,0]);
-        const mr2=[["Producto",mp.tipo||"—","Demanda",mp.demanda||"—"],["Precio venta / m²",mp.precio_venta_m2_promedio?`$${mp.precio_venta_m2_promedio?.toLocaleString("es-MX")}`:"—","Absorción",mp.absorcion_estimada_meses?`${mp.absorcion_estimada_meses} meses`:"—"],["Rango precio / m²",mp.precio_venta_m2_min?`$${mp.precio_venta_m2_min?.toLocaleString("es-MX")} – $${mp.precio_venta_m2_max?.toLocaleString("es-MX")}`:"—","Tendencia",mp.tendencia||"—"],["Renta mensual / m²",mp.precio_renta_mensual_m2?`$${mp.precio_renta_mensual_m2?.toLocaleString("es-MX")}`:"—","M² prom. unidad",mp.m2_promedio_unidad?`${mp.m2_promedio_unidad} m²`:"—"]];
-        mr2.forEach(([l1,v1,l2,v2])=>{if(y>270)addPage();doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...MID);doc.text(l1,ml,y);doc.setFont("helvetica","bold");doc.setTextColor(...DARK);doc.text(String(v1),ml+48,y);doc.setFont("helvetica","normal");doc.setTextColor(...MID);doc.text(l2,ml+cw/2,y);doc.setFont("helvetica","bold");doc.setTextColor(...DARK);doc.text(String(v2),ml+cw/2+42,y);y+=7;});
-        if(pt){y+=2;doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...MID);doc.text(`Precio terreno vs. mercado: promedio zona $${pt.promedio_m2?.toLocaleString("es-MX")}/m² · ${pt.evaluacion_precio||"—"} · diferencia ${pt.porcentaje_diferencia?pt.porcentaje_diferencia+"%":"—"}`,ml,y);y+=8;}
-        if(mp.proyectos_competencia?.length>0){if(y>215)addPage();doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(...BLUE);doc.text("Proyectos de competencia:",ml,y);y+=6;doc.setFillColor(...NAVY);doc.rect(ml,y-4,cw,7,"F");doc.setFont("helvetica","bold");doc.setFontSize(7.5);doc.setTextColor(255,255,255);doc.text("Proyecto",ml+2,y);doc.text("Desde",ml+70,y);doc.text("Hasta",ml+95,y);doc.text("M²",ml+120,y);doc.text("Tipología",ml+138,y);y+=5;mp.proyectos_competencia.slice(0,6).forEach((c:any,i:number)=>{if(y>272)addPage();doc.setFillColor(i%2===0?248:255,i%2===0?246:255,i%2===0?244:255);doc.rect(ml,y-3.5,cw,6.5,"F");doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(...DARK);doc.text((c.nombre||"").slice(0,28),ml+2,y);doc.text(c.precio_desde>0?`$${(c.precio_desde/1e6).toFixed(1)}M`:"—",ml+70,y);doc.text(c.precio_hasta>0?`$${(c.precio_hasta/1e6).toFixed(1)}M`:"—",ml+95,y);doc.text(c.m2_min>0?`${c.m2_min}–${c.m2_max}m²`:"—",ml+120,y);doc.text((c.tipologia||"").slice(0,22),ml+138,y);y+=6.5;});y+=6;}
+      const W=210,H=297;
+      const imgW=W;
+      const imgH=(canvas.height*W)/canvas.width;
+      let posY=0;
+      let remaining=imgH;
+
+      // Split into pages
+      while(remaining>0){
+        doc.addImage(imgData,"JPEG",0,posY,imgW,imgH);
+        remaining-=H;
+        posY-=H;
+        if(remaining>0)doc.addPage();
       }
-      // FINANCIERO
-      if(res.tipo_analisis==="completo"&&finF){
-        if(y>175)addPage();
-        secHdr("4 · Análisis Financiero",GREEN);
-        if(finF.calculo_ingresos){doc.setFillColor(239,246,255);doc.setDrawColor(191,219,254);doc.roundedRect(ml,y-2,cw,10,2,2,"FD");doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(30,58,95);doc.text("Ingresos: ",ml+4,y+5);doc.setFont("helvetica","normal");doc.text((finF.calculo_ingresos||"").slice(0,85),ml+22,y+5);y+=15;}
-        const fr=[["Precio terreno",$(finF.precio_terreno),"Costo construcción",$(finF.costo_construccion_total)],["Indirectos",`${finF.gastos_indirectos_pct||0}% → ${$(finF.gastos_indirectos||0)}`,"Comercialización",`${finF.comercializacion_pct||0}% → ${$(finF.comercializacion||0)}`],["Contingencias",`${finF.contingencias_pct||0}% → ${$(finF.contingencias||0)}`,"Estacionamiento",$(finF.costo_estacionamiento||0)],["Costo total",$(finF.costo_total_proyecto),"Ingreso estimado",$(finF.ingreso_total_estimado)],["Unidades",`${finF.unidades_reales||unidadesMax||0} unidades`,"M² / unidad",finF.m2_promedio_unidad?`${finF.m2_promedio_unidad} m²`:"—"],["Precio / unidad",$(finF.precio_venta_por_unidad),"Plazo",`${finF.plazo_meses||24} meses`]];
-        fr.forEach(([l1,v1,l2,v2])=>{if(y>268)addPage();doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...MID);doc.text(l1,ml,y);doc.setFont("helvetica","bold");doc.setTextColor(...DARK);doc.text(String(v1),ml+50,y);doc.setFont("helvetica","normal");doc.setTextColor(...MID);doc.text(l2,ml+cw/2,y);doc.setFont("helvetica","bold");doc.setTextColor(...DARK);doc.text(String(v2),ml+cw/2+50,y);y+=7;});
-        y+=4;if(y>248)addPage();
-        const kpis=[{l:"Utilidad bruta",v:$(finF.utilidad_bruta),c:finF.utilidad_bruta>=0?GREEN:RED},{l:"Margen bruto",v:pct(finF.margen_bruto_pct),c:finF.margen_bruto_pct>=15?GREEN:finF.margen_bruto_pct>=8?AMBER:RED},{l:"ROI",v:pct(finF.roi_pct),c:finF.roi_pct>=20?GREEN:finF.roi_pct>=10?AMBER:RED},{l:"TIR estimada",v:pct(finF.tir_estimada_pct),c:finF.tir_estimada_pct>=18?GREEN:finF.tir_estimada_pct>=10?AMBER:RED}];
-        const kw=cw/4;kpis.forEach(({l,v,c},i)=>{const x=ml+i*kw;doc.setFillColor(...BGLIGHT);doc.roundedRect(x,y-2,kw-3,18,2,2,"F");doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(...MID);doc.text(l.toUpperCase(),x+4,y+4);doc.setFont("helvetica","bold");doc.setFontSize(12);doc.setTextColor(...c);doc.text(v,x+4,y+13);});
-        y+=26;
-      }
-      // RED FLAGS + FORTALEZAS
-      if(res.analisis?.red_flags?.length>0||res.analisis?.fortalezas?.length>0){
-        if(y>195)addPage();const colW=cw/2-4;let yLeft=y,yRight=y;
-        if(res.analisis.red_flags?.length>0){doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.setTextColor(194,65,12);doc.text("⚠ Red Flags",ml,yLeft);yLeft+=6;res.analisis.red_flags.slice(0,5).forEach((f:string)=>{if(yLeft>272)addPage();doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(124,45,18);const lines=doc.splitTextToSize(`• ${f}`,colW);doc.text(lines,ml,yLeft);yLeft+=lines.length*4.5;});}
-        if(res.analisis.fortalezas?.length>0){const xr=ml+cw/2+4;doc.setFont("helvetica","bold");doc.setFontSize(8.5);doc.setTextColor(...GREEN);doc.text("✓ Fortalezas",xr,yRight);yRight+=6;res.analisis.fortalezas.slice(0,5).forEach((f:string)=>{if(yRight>272)addPage();doc.setFont("helvetica","normal");doc.setFontSize(7.5);doc.setTextColor(20,83,45);const lines=doc.splitTextToSize(`• ${f}`,colW);doc.text(lines,xr,yRight);yRight+=lines.length*4.5;});}
-        y=Math.max(yLeft,yRight)+6;
-      }
-      // VEREDICTO
-      if(res.analisis?.veredicto&&sem){
-        if(y>225)addPage();const sc=sem==="VERDE"?GREEN:sem==="AMARILLO"?AMBER:RED;
-        doc.setDrawColor(...sc);doc.setLineWidth(0.8);doc.roundedRect(ml,y-2,cw,42,3,3,"S");
-        doc.setFont("helvetica","bold");doc.setFontSize(22);doc.setTextColor(...sc);doc.text(res.analisis.veredicto,ml+6,y+13);
-        doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...DARK);const vlines=doc.splitTextToSize(res.analisis.justificacion_veredicto||"",cw-12);doc.text(vlines.slice(0,4),ml+6,y+22);y+=50;
-      }
-      // ISOMÉTRICO
-      if(res.tipo_analisis==="completo"&&isoHtml&&iframeRef.current){
-        const isoData=await new Promise<string|null>((resolve)=>{
-          const handler=(e:MessageEvent)=>{if(e.data?.type==="unearta_snapshot"){window.removeEventListener("message",handler);resolve(e.data.data||null);}};
-          window.addEventListener("message",handler);
-          iframeRef.current?.contentWindow?.postMessage("unearta_capture","*");
-          setTimeout(()=>{window.removeEventListener("message",handler);resolve(null);},3500);
-        });
-        if(isoData){if(y>165)addPage();secHdr("5 · Modelo Isométrico 3D",NAVY);doc.addImage(isoData,"JPEG",ml,y-4,cw,82);y+=86;doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(...MID);doc.text("Modelo volumétrico generado con lineamientos PDU. Referencia conceptual — no sustituye proyecto arquitectónico.",ml,y);y+=8;}
-      }
-      // PRÓXIMOS PASOS
-      if(res.analisis?.proximos_pasos?.length>0){
-        if(y>220)addPage();secHdr("Próximos Pasos",BLUE);
-        res.analisis.proximos_pasos.forEach((p:string,i:number)=>{if(y>272)addPage();doc.setFillColor(...BLUE);doc.circle(ml+3,y-1.5,3,"F");doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(255,255,255);doc.text(String(i+1),ml+3,y-0.3,{align:"center"});doc.setFont("helvetica","normal");doc.setFontSize(8);doc.setTextColor(...DARK);const plines=doc.splitTextToSize(p,cw-12);doc.text(plines,ml+9,y);y+=plines.length*5+3;});
-      }
-      // FOOTER
-      const total=doc.getNumberOfPages();
-      for(let i=1;i<=total;i++){doc.setPage(i);doc.setFillColor(...NAVY);doc.rect(0,H-13,W,13,"F");doc.setFont("helvetica","normal");doc.setFontSize(7);doc.setTextColor(160,152,136);doc.text("unearta · Developer's Agent · Monterrey, NL",ml,H-5);doc.setTextColor(...LBLUE);doc.text("developers-agent.vercel.app",W/2,H-5,{align:"center"});doc.setTextColor(160,152,136);doc.text(`Página ${i} / ${total}`,W-mr,H-5,{align:"right"});}
+
       const fecha=new Date().toISOString().slice(0,10);
       const dir=(res.ubicacion?.direccion||"terreno").slice(0,30).replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,"_");
-      doc.save(`unearta_${dir}_${fecha}.pdf`);
+      doc.save(`unearth_${dir}_${fecha}.pdf`);
+
     }catch(err){console.error(err);alert("Error generando PDF. Intenta de nuevo.");}
     finally{setPdfLoading(false);}
   }
+
 
   /* ── MERCADO CHARTS BLOCK ── */
   const MercadoChartsBlock=()=>{
@@ -1155,6 +1086,7 @@ export default function Page(){
       </div>
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
+      <div id="results-container">
       {res&&!loading&&res.tipo_analisis==="error_uso_suelo"&&(
         <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
           <Header/>
@@ -1449,14 +1381,15 @@ export default function Page(){
                     <line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/>
                     <polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Descargar Reporte PDF
-                  <span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearta</span>
+                  Exportar Reporte PDF
+                  <span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span>
                 </>
               }
             </button>
 
         </div>
       )}
+      </div>{/* results-container */}
     </div></>)}
 
 
