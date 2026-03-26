@@ -195,6 +195,8 @@ export default function Page(){
   const supabase = createClient();
   const [userSession, setUserSession] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
   const [creditos, setCreditos] = useState<number|null>(null);
   const [historial, setHistorial] = useState<any[]>([]);
   const [reporteAbierto, setReporteAbierto] = useState<any>(null);
@@ -251,19 +253,21 @@ export default function Page(){
       if(frente)body.frente_m=parseFloat(frente);
       if(fondo)body.fondo_m=parseFloat(fondo);
       const token = userSession?.access_token ?? "";
-      if (!token) { setErr("Inicia sesión para continuar."); setLoading(false); return; }
-      const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},body:JSON.stringify(body)});
+      if (!token) { setLoading(false); setShowLoginModal(true); return; }
+      const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog";
+      const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${ANON_KEY}`,"x-user-token":token},body:JSON.stringify(body)});
       const d=await r.json();
       if(d.necesita_producto){setErr("Indica qué quieres construir.");setLoading(false);return;}
+      if(d.error==="sin_creditos"||d.creditos_disponibles===0){
+        setLoading(false); setShowNoCreditsModal(true); return;
+      }
       if(d.error_uso_suelo){
-        // Show HU warning with lineamientos data if available
         if(d.lineamientos) setRes({...d, ok:true, tipo_analisis:"error_uso_suelo", tipo_analisis_real: tipo});
         else setErr(d.error);
         setLoading(false);return;
       }
       if(d.ok){
         setRes(d);
-        // Refrescar créditos e historial
         if(userSession?.user?.id) cargarPerfil(userSession.user.id);
       } else setErr(d.error||"Error inesperado.");
     }catch{setErr("Error de conexión.");}
@@ -969,8 +973,8 @@ export default function Page(){
 
 
         {/* NAV over map */}
-        <nav style={{position:"relative",zIndex:10,padding:"22px 28px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <span style={{display:"inline-block",height:42,width:220}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
+        <nav style={{position:"relative",zIndex:10,padding:"18px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <button onClick={()=>{setRes(null);}} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"inline-block",height:48,width:240,flexShrink:0}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
   <g transform="matrix(0.2963,0,0,0.2963,1690.427598,1587.252321)">
     <g transform="matrix(0.960503,0,0,1,-185.86227,0)">
       <g transform="matrix(4125.249604,0,0,4125.249604,-4705.730796,1681.366567)">
@@ -998,12 +1002,17 @@ export default function Page(){
       </g>
     </g>
   </g>
-</svg></span>
+</svg></button>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px"}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 6px #22c55e"}}/>
               <span style={{fontSize:11,fontWeight:600,color:"rgba(255,255,255,.7)",letterSpacing:".07em"}}>LIVE DATA</span>
             </div>
+            {!userSession&&(
+              <button onClick={()=>setShowLoginModal(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.1)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.2)",borderRadius:100,padding:"7px 16px",cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600,letterSpacing:".02em"}}>
+                Iniciar sesión
+              </button>
+            )}
             {userSession&&(
               <button onClick={()=>setSidebarOpen(true)} style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px",cursor:"pointer",color:"rgba(255,255,255,.8)",fontSize:11,fontWeight:600,letterSpacing:".05em"}}>
                 <div style={{width:22,height:22,borderRadius:"50%",background:"linear-gradient(135deg,#2563a8,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:"#fff",flexShrink:0}}>
@@ -1160,8 +1169,8 @@ export default function Page(){
         <div style={{position:"absolute",bottom:"20%",right:"20%",width:500,height:500,background:"radial-gradient(circle, rgba(91,184,212,.05) 0%, transparent 70%)"}}/>
       </div>
     {/* NAV — compact when showing results */}
-    <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 28px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <span style={{display:"inline-block",height:34,width:178}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
+    <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 24px",height:56,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");setFrente("");setFondo("");}} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"inline-block",height:38,width:200,flexShrink:0}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
   <g transform="matrix(0.2963,0,0,0.2963,1690.427598,1587.252321)">
     <g transform="matrix(0.960503,0,0,1,-185.86227,0)">
       <g transform="matrix(4125.249604,0,0,4125.249604,-4705.730796,1681.366567)">
@@ -1189,7 +1198,7 @@ export default function Page(){
       </g>
     </g>
   </g>
-</svg></span>
+</svg></button>
       <div style={{display:"flex",alignItems:"center",gap:10}}>
         <span style={{fontSize:11,fontWeight:500,color:"#c0b8ae",letterSpacing:".07em"}}>MONTERREY MVP</span>
         {userSession&&(
@@ -1567,6 +1576,71 @@ export default function Page(){
       </div>{/* results-container */}
     </div></div>)}
 
+
+      {/* ════ MODAL LOGIN ════ */}
+      {showLoginModal&&(
+        <>
+          <div onClick={()=>setShowLoginModal(false)} style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
+          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+            width:"min(420px,90vw)",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
+            borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",
+            border:"1px solid rgba(234,229,223,.8)"}}>
+            <div style={{textAlign:"center" as const,marginBottom:24}}>
+              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:24,color:"#1a1510",marginBottom:8}}>Crea tu cuenta gratis</div>
+              <p style={{fontSize:14,color:"#7a6f64",lineHeight:1.6}}>
+                Tu análisis está listo para generarse.<br/>Solo necesitas una cuenta para continuar.
+              </p>
+              <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:600,color:"#15803d",marginTop:8}}>
+                ✦ 3 créditos gratis al registrarte
+              </div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
+              <button onClick={async()=>{
+                await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:`${location.origin}/auth/callback`}});
+              }} style={{width:"100%",padding:"12px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:600,color:"#1a1510",cursor:"pointer"}}>
+                <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                Continuar con Google
+              </button>
+              <button onClick={()=>{setShowLoginModal(false);window.location.href="/login";}} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>
+                Registrarse con email
+              </button>
+            </div>
+            <button onClick={()=>setShowLoginModal(false)} style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>
+        </>
+      )}
+
+      {/* ════ MODAL SIN CRÉDITOS ════ */}
+      {showNoCreditsModal&&(
+        <>
+          <div onClick={()=>setShowNoCreditsModal(false)} style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
+          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+            width:"min(420px,90vw)",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
+            borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",
+            border:"1px solid rgba(234,229,223,.8)"}}>
+            <div style={{textAlign:"center" as const,marginBottom:24}}>
+              <div style={{fontSize:36,marginBottom:12}}>⚡</div>
+              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:24,color:"#1a1510",marginBottom:8}}>Sin créditos disponibles</div>
+              <p style={{fontSize:14,color:"#7a6f64",lineHeight:1.6}}>
+                Tu análisis de <strong style={{color:"#1a1510"}}>{dir}</strong> está guardado.<br/>
+                Compra créditos para generarlo al instante.
+              </p>
+            </div>
+            <div style={{background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",borderRadius:16,padding:"20px",marginBottom:16,textAlign:"center" as const}}>
+              <div style={{fontSize:13,color:"rgba(255,255,255,.6)",marginBottom:4}}>PAQUETE ÚNICO</div>
+              <div style={{fontSize:32,fontWeight:700,color:"#fff",lineHeight:1}}>$199 <span style={{fontSize:16,fontWeight:400}}>MXN</span></div>
+              <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:4}}>3 créditos · 1 análisis completo</div>
+            </div>
+            <button style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:10,letterSpacing:".02em"}}>
+              Comprar — $199 MXN
+            </button>
+            <button onClick={()=>setShowNoCreditsModal(false)} style={{width:"100%",padding:"10px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"transparent",color:"#7a6f64",fontSize:13,cursor:"pointer"}}>
+              Cancelar
+            </button>
+            <button onClick={()=>setShowNoCreditsModal(false)} style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>
+        </>
+      )}
 
       {/* ════ SIDEBAR ════ */}
       {sidebarOpen&&(
