@@ -402,7 +402,7 @@ export default function Page(){
           ].map(g=>(
             <div key={g.title} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
               <div style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:C.light,marginBottom:10}}>{g.title}</div>
-              <div style={{maxHeight:290,overflowY:"auto" as const}}>
+              <div style={{maxHeight:290}}>
                 {g.items.map((item:string,i:number)=>(
                   <div key={i} style={{fontSize:12,color:"#3a3228",padding:"5px 0",borderBottom:"1px solid #F0EBE5",lineHeight:1.4}}>
                     <span style={{color:g.col,fontWeight:700,marginRight:8,fontSize:10}}>
@@ -529,27 +529,30 @@ export default function Page(){
 
       // ── Step 3: Capture the full page ───────────────────────────
       const canvas=await html2canvas(el,{
-        scale:2,
+        scale:1.5,
         useCORS:true,
         allowTaint:true,
         backgroundColor:"#F5F2EE",
         logging:false,
-        windowWidth:el.scrollWidth,
+        windowWidth:Math.min(el.scrollWidth, 1200),
         height:el.scrollHeight,
         scrollY:0,
+        x:0,
+        y:0,
       });
 
       // ── Step 4: Build PDF pages ──────────────────────────────────
       const imgData=canvas.toDataURL("image/jpeg",0.92);
       const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
-      const W=210,H=297;
+      const margin=10; // 10mm margins
+      const W=210-margin*2, H=297;
       const imgH=(canvas.height*W)/canvas.width;
-      let posY=0;
+      let posY=margin;
       let remaining=imgH;
       while(remaining>0){
-        doc.addImage(imgData,"JPEG",0,posY,W,imgH);
-        remaining-=H;
-        posY-=H;
+        doc.addImage(imgData,"JPEG",margin,posY,W,imgH);
+        remaining-=(H-margin*2);
+        posY-=(H-margin*2);
         if(remaining>0)doc.addPage();
       }
 
@@ -950,7 +953,7 @@ export default function Page(){
         Only shown when there's no result yet
     ════════════════════════════════════════════ */}
     {!res&&!loading&&(
-      <div style={{position:"relative",height:"100vh",overflow:"hidden",display:"flex",flexDirection:"column" as const}}>
+      <div style={{position:"relative",minHeight:"100vh",overflow:"hidden",display:"flex",flexDirection:"column" as const}}>
         {/* MAP BACKGROUND — SVG grid simulating urban map */}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg, #0a1628 0%, #0f2240 40%, #0d2d3a 70%, #0a1e28 100%)"}}>
           {/* Grid lines */}
@@ -1013,7 +1016,7 @@ export default function Page(){
         </nav>
 
         {/* Center content */}
-        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10,overflowY:"auto" as const,maxHeight:"calc(100vh - 70px)"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10}}>
           {/* Logo real grande */}
           <div style={{marginBottom:4,position:"relative"}}>
             <img src="/LOGO SIMBOLO WHITE.png" alt="" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
@@ -1128,9 +1131,9 @@ export default function Page(){
                 </span>
               </div>
               <span style={{fontSize:11,color:"rgba(200,220,240,.55)",lineHeight:1.5}}>
-                {tipo==="lineamientos"&&"Zonificación PDU · COS/CUS/CAV/Densidad · Giros permitidos y condicionados del predio."}
-                {tipo==="mercado"&&"Todo lo anterior + precios reales de mercado, competencia activa en la zona, absorción y potencial de ingresos."}
-                {tipo==="completo"&&"Todo lo anterior + financiero completo: ROI, TIR, margen, costo de construcción y veredicto GO / NO-GO."}
+                {tipo==="lineamientos"&&"Zonificación PDU · COS, CUS, CAV y densidad máxima · Altura permitida · Giros permitidos y condicionados según el Plan de Desarrollo Urbano de Monterrey."}
+                {tipo==="mercado"&&"Zonificación completa · Precios de venta y renta por m² en la zona · Proyectos de competencia activos · Absorción estimada en meses · Potencial de ingresos del proyecto."}
+                {tipo==="completo"&&"Zonificación · Mercado completo · Análisis financiero: ROI, TIR, margen bruto, costo de construcción paramétrico, estacionamiento y veredicto GO / NO-GO."}
               </span>
             </div>
           </div>
@@ -1279,20 +1282,70 @@ export default function Page(){
 
       {/* ══ LINEAMIENTOS ══ */}
       {res&&!loading&&res.tipo_analisis==="lineamientos"&&(
-        <div className="up"><Header/><LineamientosBlock/></div>
+        <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
+          <Header/>
+          <LineamientosBlock/>
+          
+          {/* ── BOTÓN PDF ── */}
+          <button onClick={generarPDF} disabled={pdfLoading} style={{
+            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+            background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",
+            border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",
+            color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,
+            cursor:pdfLoading?"not-allowed":"pointer",
+            boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8,
+          }}>
+            {pdfLoading
+              ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>
+              :<>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/>
+                  <polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Exportar Reporte PDF
+                <span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span>
+              </>
+            }
+          </button>
+        </div>
       )}
 
       {/* ══ MERCADO ══ */}
       {res&&!loading&&res.tipo_analisis==="mercado"&&(
         <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
           <Header/>
-          {/* Orden: mercado primero, luego lineamientos */}
           <MercadoChartsBlock/>
           <MercadoComercialBlock/>
           <div className="sec-hdr" style={{borderColor:BLUE,marginTop:8}}>
             <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos y Giros Permitidos</div>
           </div>
           <LineamientosBlock/>
+          
+          {/* ── BOTÓN PDF ── */}
+          <button onClick={generarPDF} disabled={pdfLoading} style={{
+            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+            background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",
+            border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",
+            color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,
+            cursor:pdfLoading?"not-allowed":"pointer",
+            boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8,
+          }}>
+            {pdfLoading
+              ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>
+              :<>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/>
+                  <polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                Exportar Reporte PDF
+                <span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span>
+              </>
+            }
+          </button>
         </div>
       )}
 
@@ -1704,7 +1757,7 @@ export default function Page(){
             background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
             borderLeft:"1px solid rgba(234,229,223,.8)",
             boxShadow:"-8px 0 40px rgba(0,0,0,.12)",
-            display:"flex",flexDirection:"column" as const,overflowY:"auto" as const}}>
+            display:"flex",flexDirection:"column" as const}}>
 
             {/* Header sidebar */}
             <div style={{padding:"20px 24px",borderBottom:"1px solid #EAE5DF",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(255,255,255,.6)"}}>
