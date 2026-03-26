@@ -198,6 +198,7 @@ export default function Page(){
   const [step,setStep]=useState(0);
   const [isoLoading,setIsoLoading]=useState(false);
   const [isoHtml,setIsoHtml]=useState<string|null>(null);
+  const iframeRef=useRef<HTMLIFrameElement>(null);
   const [loading,setLoading]=useState(false);
   const [tipIdx,setTipIdx]=useState(0);
   const [res,setRes]=useState<any>(null); const [err,setErr]=useState("");
@@ -1290,7 +1291,7 @@ export default function Page(){
                   </div>
                   <button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button>
                 </div>
-                <iframe srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
+                <iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
                 <div style={{padding:"10px 20px",display:"flex",gap:16,flexWrap:"wrap" as const,borderTop:"1px solid rgba(255,255,255,.06)"}}>
                   {([["#ffffff","Volumen construido"],["#e74c3c","Restricciones"],["#27ae60","Área Verde (CAV)"],["#333333","Terreno"]] as [string,string][]).map(([col,lbl])=>(
                     <div key={lbl} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,.35)"}}>
