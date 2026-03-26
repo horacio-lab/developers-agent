@@ -1,8 +1,8 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 const API = "https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/analizar_terreno";
-const KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog";
 type Tipo = "lineamientos"|"mercado"|"completo";
 
 const $   = (n:any,m="c")=>n!=null&&!isNaN(+n)?(m==="c"?new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(+n):new Intl.NumberFormat("es-MX",{maximumFractionDigits:0}).format(+n)):"—";
@@ -192,6 +192,7 @@ function ScatterChart({points,h=200}:{points:{x:number;y:number;label:string;siz
    MAIN PAGE
 ══════════════════════════════════════════════════════ */
 export default function Page(){
+  const supabase = createClient();
   const [dir,setDir]=useState(""); const [m2,setM2]=useState(""); const [px,setPx]=useState("");
   const [frente,setFrente]=useState(""); const [fondo,setFondo]=useState("");
   const [tipo,setTipo]=useState<Tipo>("lineamientos"); const [prod,setProd]=useState("");
@@ -221,7 +222,9 @@ export default function Page(){
       if(prod)body.producto_deseado=prod;
       if(frente)body.frente_m=parseFloat(frente);
       if(fondo)body.fondo_m=parseFloat(fondo);
-      const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${KEY}`},body:JSON.stringify(body)});
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token ?? "";
+      const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},body:JSON.stringify(body)});
       const d=await r.json();
       if(d.necesita_producto){setErr("Indica qué quieres construir.");setLoading(false);return;}
       if(d.error_uso_suelo){
@@ -792,7 +795,7 @@ export default function Page(){
       .f:focus{border-color:#2563a8;box-shadow:0 0 0 3px rgba(37,99,168,.08);}
       .f:disabled{opacity:.5;}
       .lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#a09888;margin-bottom:6px;display:block;}
-      .card{background:rgba(255,255,255,.82);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(234,229,223,.75);border-radius:14px;padding:20px 24px;box-shadow:0 2px 20px rgba(37,99,168,.07);}
+      .card{background:rgba(255,255,255,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(234,229,223,.75);border-radius:14px;padding:20px 24px;box-shadow:0 2px 20px rgba(37,99,168,.07);}
       .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
       .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
       @media(max-width:700px){.g2,.g3{grid-template-columns:1fr!important;}}
@@ -1101,31 +1104,30 @@ export default function Page(){
         Keeps its own nav + white bg layout
     ══════════════════════════════════════════ */}
     {(res||loading)&&(<div style={{position:"relative",minHeight:"100vh",background:"#F8F5F0"}}>
-  {/* Fondo grid claro — mismo lenguaje visual que el hero pero en light mode */}
-  <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
-    <svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}} xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="rgl" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(37,99,168,.05)" strokeWidth=".6"/></pattern>
-        <pattern id="rgl2" width="300" height="300" patternUnits="userSpaceOnUse"><path d="M 300 0 L 0 0 0 300" fill="none" stroke="rgba(37,99,168,.09)" strokeWidth="1.2"/></pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#rgl)"/>
-      <rect width="100%" height="100%" fill="url(#rgl2)"/>
-      <line x1="0" y1="38%" x2="100%" y2="35%" stroke="rgba(91,184,212,.15)" strokeWidth="1.5"/>
-      <line x1="0" y1="62%" x2="100%" y2="65%" stroke="rgba(91,184,212,.1)" strokeWidth="1"/>
-      <line x1="0" y1="78%" x2="100%" y2="80%" stroke="rgba(91,184,212,.08)" strokeWidth=".8"/>
-      <line x1="22%" y1="0" x2="18%" y2="100%" stroke="rgba(91,184,212,.15)" strokeWidth="1.5"/>
-      <line x1="55%" y1="0" x2="52%" y2="100%" stroke="rgba(91,184,212,.1)" strokeWidth="1"/>
-      <line x1="78%" y1="0" x2="80%" y2="100%" stroke="rgba(91,184,212,.08)" strokeWidth=".8"/>
-      <rect x="24%" y="20%" width="8%" height="12%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
-      <rect x="35%" y="25%" width="5%" height="8%" fill="none" stroke="rgba(37,99,168,.05)" strokeWidth=".5"/>
-      <rect x="58%" y="42%" width="10%" height="14%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
-      <rect x="15%" y="55%" width="6%" height="9%" fill="none" stroke="rgba(37,99,168,.05)" strokeWidth=".5"/>
-      <rect x="70%" y="20%" width="7%" height="10%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
-    </svg>
-    <div style={{position:"absolute",top:"15%",left:"28%",width:600,height:600,background:"radial-gradient(circle, rgba(37,99,168,.04) 0%, transparent 70%)",transform:"translate(-50%,-50%)"}}/>
-    <div style={{position:"absolute",bottom:"20%",right:"20%",width:500,height:500,background:"radial-gradient(circle, rgba(91,184,212,.05) 0%, transparent 70%)"}}/>
-  </div>
-```
+      {/* Fondo grid claro */}
+      <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
+        <svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}} xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="rgl" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="rgba(37,99,168,.05)" strokeWidth=".6"/></pattern>
+            <pattern id="rgl2" width="300" height="300" patternUnits="userSpaceOnUse"><path d="M 300 0 L 0 0 0 300" fill="none" stroke="rgba(37,99,168,.09)" strokeWidth="1.2"/></pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#rgl)"/>
+          <rect width="100%" height="100%" fill="url(#rgl2)"/>
+          <line x1="0" y1="38%" x2="100%" y2="35%" stroke="rgba(91,184,212,.15)" strokeWidth="1.5"/>
+          <line x1="0" y1="62%" x2="100%" y2="65%" stroke="rgba(91,184,212,.1)" strokeWidth="1"/>
+          <line x1="0" y1="78%" x2="100%" y2="80%" stroke="rgba(91,184,212,.08)" strokeWidth=".8"/>
+          <line x1="22%" y1="0" x2="18%" y2="100%" stroke="rgba(91,184,212,.15)" strokeWidth="1.5"/>
+          <line x1="55%" y1="0" x2="52%" y2="100%" stroke="rgba(91,184,212,.1)" strokeWidth="1"/>
+          <line x1="78%" y1="0" x2="80%" y2="100%" stroke="rgba(91,184,212,.08)" strokeWidth=".8"/>
+          <rect x="24%" y="20%" width="8%" height="12%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
+          <rect x="35%" y="25%" width="5%" height="8%" fill="none" stroke="rgba(37,99,168,.05)" strokeWidth=".5"/>
+          <rect x="58%" y="42%" width="10%" height="14%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
+          <rect x="15%" y="55%" width="6%" height="9%" fill="none" stroke="rgba(37,99,168,.05)" strokeWidth=".5"/>
+          <rect x="70%" y="20%" width="7%" height="10%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
+        </svg>
+        <div style={{position:"absolute",top:"15%",left:"28%",width:600,height:600,background:"radial-gradient(circle, rgba(37,99,168,.04) 0%, transparent 70%)",transform:"translate(-50%,-50%)"}}/>
+        <div style={{position:"absolute",bottom:"20%",right:"20%",width:500,height:500,background:"radial-gradient(circle, rgba(91,184,212,.05) 0%, transparent 70%)"}}/>
+      </div>
     {/* NAV — compact when showing results */}
     <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 32px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -1177,7 +1179,6 @@ export default function Page(){
     </header>
 
     <div style={{maxWidth:1200,margin:"0 auto",padding:"32px 28px 100px",width:"100%",position:"relative",zIndex:1}}>
-```
 
       {/* COMPACT FORM */}
       <div className="card up" style={{marginBottom:28,borderRadius:18,padding:"20px 28px",boxShadow:"0 2px 16px rgba(0,0,0,.07)"}}>
