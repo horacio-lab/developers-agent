@@ -932,7 +932,7 @@ export default function Page(){
         Only shown when there's no result yet
     ════════════════════════════════════════════ */}
     {!res&&!loading&&(
-      <div style={{position:"relative",minHeight:"100vh",overflow:"hidden",display:"flex",flexDirection:"column" as const}}>
+      <div style={{position:"relative",height:"100vh",overflow:"hidden",display:"flex",flexDirection:"column" as const}}>
         {/* MAP BACKGROUND — SVG grid simulating urban map */}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg, #0a1628 0%, #0f2240 40%, #0d2d3a 70%, #0a1e28 100%)"}}>
           {/* Grid lines */}
@@ -969,8 +969,8 @@ export default function Page(){
 
 
         {/* NAV over map */}
-        <nav style={{position:"relative",zIndex:10,padding:"20px 32px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <span style={{display:"inline-block",height:36,width:190}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
+        <nav style={{position:"relative",zIndex:10,padding:"22px 28px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <span style={{display:"inline-block",height:42,width:220}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
   <g transform="matrix(0.2963,0,0,0.2963,1690.427598,1587.252321)">
     <g transform="matrix(0.960503,0,0,1,-185.86227,0)">
       <g transform="matrix(4125.249604,0,0,4125.249604,-4705.730796,1681.366567)">
@@ -1160,8 +1160,8 @@ export default function Page(){
         <div style={{position:"absolute",bottom:"20%",right:"20%",width:500,height:500,background:"radial-gradient(circle, rgba(91,184,212,.05) 0%, transparent 70%)"}}/>
       </div>
     {/* NAV — compact when showing results */}
-    <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 32px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <span style={{display:"inline-block",height:30,width:158}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
+    <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 28px",height:52,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+      <span style={{display:"inline-block",height:34,width:178}}><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4961 3508" style={{width:"100%",height:"100%"}}>
   <g transform="matrix(0.2963,0,0,0.2963,1690.427598,1587.252321)">
     <g transform="matrix(0.960503,0,0,1,-185.86227,0)">
       <g transform="matrix(4125.249604,0,0,4125.249604,-4705.730796,1681.366567)">
@@ -1602,11 +1602,12 @@ export default function Page(){
               <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginBottom:16}}>
                 {creditos===0?"Sin créditos — compra más para continuar":creditos===1?"Alcanza para 1 análisis de lineamientos":`Suficiente para ${Math.floor((creditos??0)/3)} análisis completo${Math.floor((creditos??0)/3)!==1?"s":""}`}
               </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:16}}>
-                {[{t:"Lineamientos",c:1,col:"#5ea8f0"},{t:"Mercado",c:2,col:"#d97706"},{t:"Completo",c:3,col:"#22c55e"}].map(x=>(
-                  <div key={x.t} style={{background:"rgba(255,255,255,.08)",borderRadius:8,padding:"8px 10px",textAlign:"center" as const}}>
-                    <div style={{fontSize:16,fontWeight:700,color:x.col}}>{x.c}</div>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,.45)",marginTop:2}}>{x.t}</div>
+              <div style={{marginBottom:16,display:"flex",flexDirection:"column" as const,gap:6}}>
+                <div style={{fontSize:9,fontWeight:700,letterSpacing:".08em",color:"rgba(255,255,255,.35)",marginBottom:2}}>COSTO POR TIPO DE ANÁLISIS</div>
+                {[{t:"Lineamientos urbanísticos",c:1,col:"#5ea8f0"},{t:"Estudio de mercado",c:2,col:"#d97706"},{t:"Análisis completo",c:3,col:"#22c55e"}].map(x=>(
+                  <div key={x.t} style={{background:"rgba(255,255,255,.08)",borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontSize:11,color:"rgba(255,255,255,.65)",fontWeight:500}}>{x.t}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:x.col,flexShrink:0,marginLeft:8}}>{x.c} crédito{x.c>1?"s":""}</span>
                   </div>
                 ))}
               </div>
