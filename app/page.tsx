@@ -989,7 +989,7 @@ export default function Page(){
         {/* NAV over map */}
         <nav style={{position:"relative",zIndex:10,padding:"18px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={()=>{setRes(null);}} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"inline-flex",alignItems:"center",flexShrink:0}}>
-          <img src="/LOGO LETRAS WHITE.png" alt="unearth" style={{height:40,width:"auto",display:"block"}}/>
+          <img src="/LOGO LETRAS WHITE.png" alt="unearth" style={{height:28,width:"auto",display:"block"}}/>
         </button>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <div style={{display:"flex",alignItems:"center",gap:8,background:"rgba(255,255,255,.08)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.12)",borderRadius:100,padding:"6px 14px"}}>
@@ -1013,10 +1013,10 @@ export default function Page(){
         </nav>
 
         {/* Center content */}
-        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 20px",position:"relative",zIndex:10}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10,overflowY:"auto" as const,maxHeight:"calc(100vh - 70px)"}}>
           {/* Logo real grande */}
           <div style={{marginBottom:4,position:"relative"}}>
-            <img src="/LOGO SIMBOLO WHITE.png" alt="" style={{width:200,height:200,objectFit:"contain",filter:"drop-shadow(0 0 36px rgba(94,168,240,.8))",display:"block"}}/>
+            <img src="/LOGO SIMBOLO WHITE.png" alt="" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
           </div>
 
           <h2 style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(26px,3.5vw,48px)",lineHeight:1.1,color:"#fff",marginBottom:10,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
