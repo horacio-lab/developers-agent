@@ -422,9 +422,9 @@ export default function Page(){
             {title:`Giros Permitidos (P) — ${res.giros.total_permitidos}`,items:res.giros.permitidos,col:"#15803d"},
             {title:`Giros Condicionados (C) — ${res.giros.total_condicionados}`,items:res.giros.condicionados||[],col:"#d97706"},
           ].map(g=>(
-            <div key={g.title} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
+            <div key={g.title} style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
               <div style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:C.light,marginBottom:10}}>{g.title}</div>
-              <div style={{maxHeight:290}}>
+              <div style={{maxHeight:290,overflowY:"auto" as const}}>
                 {g.items.map((item:string,i:number)=>(
                   <div key={i} style={{fontSize:12,color:"#3a3228",padding:"5px 0",borderBottom:"1px solid #F0EBE5",lineHeight:1.4}}>
                     <span style={{color:g.col,fontWeight:700,marginRight:8,fontSize:10}}>
@@ -555,37 +555,31 @@ export default function Page(){
       if(bgEl) bgEl.style.display = 'none';
       if(bgEl2) bgEl2.style.display = 'none';
 
-      // ── Step 4: Expand scrollable elements temporarily ──────────
-      const scrollEls = el.querySelectorAll('[style*="overflow"]');
-      const savedStyles: {el: HTMLElement, maxH: string, overflowY: string}[] = [];
-      scrollEls.forEach((node) => {
-        const el2 = node as HTMLElement;
-        if(el2.style.overflowY === 'auto' || el2.style.overflowY === 'scroll'){
-          savedStyles.push({el: el2, maxH: el2.style.maxHeight, overflowY: el2.style.overflowY});
-          el2.style.maxHeight = 'none';
-          el2.style.overflowY = 'visible';
-        }
-      });
-
       // ── Step 4: Capture the full page ───────────────────────────
       const canvas=await html2canvas(el,{
-        scale:1.5,
+        scale:2,
         useCORS:true,
         allowTaint:true,
         backgroundColor:"#ffffff",
         logging:false,
-        windowWidth:Math.min(el.scrollWidth, 1200),
+        windowWidth:1100,
         height:el.scrollHeight,
         scrollY:0,
         x:0,
         y:0,
+        onclone:(clonedDoc)=>{
+          // In the cloned doc, make giros lists expand fully
+          clonedDoc.querySelectorAll('[style*="overflow"]').forEach((node)=>{
+            const el2 = node as HTMLElement;
+            if(el2.style.overflowY==='auto'||el2.style.overflowY==='scroll'){
+              el2.style.maxHeight='none';
+              el2.style.overflowY='visible';
+            }
+          });
+        }
       });
 
-      // ── Step 5: Restore scrollable elements and background ──────
-      savedStyles.forEach(({el: el2, maxH, overflowY}) => {
-        el2.style.maxHeight = maxH;
-        el2.style.overflowY = overflowY;
-      });
+      // ── Step 4: Restore background ──────────────────────────────
       if(bgEl) bgEl.style.display = '';
       if(bgEl2) bgEl2.style.display = '';
 
@@ -661,7 +655,7 @@ export default function Page(){
         {/* Fila 1: Precios + Tipologías */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           {/* Gráfica precios por m² */}
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Precios de mercado — {mpData.tipo||prod} / m²
             </div>
@@ -681,7 +675,7 @@ export default function Page(){
           </div>
 
           {/* Tipologías donut */}
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>Tipologías del mercado</div>
             {tipos.length>0?(
               <>
@@ -710,7 +704,7 @@ export default function Page(){
         {/* Fila 2: Competencia scatter + dispersión precios */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           {/* Competencia scatter */}
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Competencia — tamaño vs precio total
             </div>
@@ -742,7 +736,7 @@ export default function Page(){
           </div>
 
           {/* Dispersión precios horizontal */}
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",overflow:"hidden"}}>
+          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Dispersión de precios por m² — competencia
             </div>
@@ -1091,12 +1085,6 @@ export default function Page(){
           </div>
         </nav>
 
-        {/* LIVE DATA badge — bottom left */}
-        <div style={{position:"absolute",bottom:16,left:20,zIndex:10,display:"flex",alignItems:"center",gap:5,background:"rgba(0,0,0,.3)",backdropFilter:"blur(8px)",borderRadius:100,padding:"4px 10px",border:"1px solid rgba(255,255,255,.08)"}}>
-          <div style={{width:5,height:5,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 5px #22c55e"}}/>
-          <span style={{fontSize:9,fontWeight:600,color:"rgba(255,255,255,.45)",letterSpacing:".1em"}}>LIVE DATA</span>
-        </div>
-
         {/* Center content */}
         <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10}}>
           {/* Logo real grande */}
@@ -1254,77 +1242,40 @@ export default function Page(){
         <div style={{position:"absolute",bottom:"20%",right:"20%",width:500,height:500,background:"radial-gradient(circle, rgba(91,184,212,.05) 0%, transparent 70%)"}}/>
       </div>
     {/* NAV — compact when showing results */}
-    <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 24px",height:56,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+    <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 20px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
       <button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");setFrente("");setFondo("");}} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"inline-flex",alignItems:"center",flexShrink:0}}>
-          <img src="/LOGO LETRAS BLACK.png" alt="unearth" style={{height:34,width:"auto",display:"block"}}/>
+        <img src="/LOGO LETRAS BLACK.png" alt="unearth" style={{height:24,width:"auto",display:"block"}}/>
+      </button>
+      {userSession&&(
+        <button onClick={()=>setSidebarOpen(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(37,99,168,.08)",border:"1px solid #EAE5DF",borderRadius:100,padding:"5px 12px",cursor:"pointer",color:"#2563a8",fontSize:11,fontWeight:600}}>
+          <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#2563a8,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>
+            {(userSession.user?.email||"U")[0].toUpperCase()}
+          </div>
+          {creditos!==null&&<span style={{fontWeight:700}}>{creditos} cr.</span>}
         </button>
-      <div style={{display:"flex",alignItems:"center",gap:10}}>
-        <span style={{fontSize:11,fontWeight:500,color:"#c0b8ae",letterSpacing:".07em"}}>MONTERREY MVP</span>
-        {userSession&&(
-          <button onClick={()=>setSidebarOpen(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(37,99,168,.08)",border:"1px solid #EAE5DF",borderRadius:100,padding:"5px 12px",cursor:"pointer",color:"#2563a8",fontSize:11,fontWeight:600}}>
-            <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#2563a8,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>
-              {(userSession.user?.email||"U")[0].toUpperCase()}
-            </div>
-            {creditos!==null&&<span style={{fontWeight:700}}>{creditos} créditos</span>}
-          </button>
-        )}
-      </div>
+      )}
     </header>
 
-    <div className="mob-results-content" style={{maxWidth:1200,margin:"0 auto",padding:"32px 28px 100px",width:"100%",position:"relative",zIndex:1}}>
+    {/* Floating "Nuevo análisis" button - fixed bottom */}
+    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:20,padding:"12px 20px 20px",background:"linear-gradient(to top, rgba(245,242,238,1) 60%, rgba(245,242,238,0))",pointerEvents:"none"}}>
+      <button onClick={()=>setRes(null)} style={{
+        width:"100%",maxWidth:480,margin:"0 auto",display:"flex",
+        alignItems:"center",justifyContent:"center",gap:10,
+        background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",
+        border:"none",borderRadius:14,padding:"14px 24px",
+        color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
+        boxShadow:"0 4px 24px rgba(37,99,168,.3)",letterSpacing:".02em",
+        pointerEvents:"auto" as const,
+      }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Analizar con otro tipo de análisis
+      </button>
+    </div>
 
-      {/* COMPACT FORM */}
-      <div className="card up" style={{marginBottom:28,borderRadius:18,padding:"20px 28px",boxShadow:"0 2px 16px rgba(0,0,0,.07)"}}>
-        <div className="g3" style={{marginBottom:12}}>
-          <div style={{gridColumn:"1/-1"}}>
-            <label className="lbl">Dirección del terreno</label>
-            <input className="f" value={dir} onChange={e=>setDir(e.target.value)} disabled={loading} placeholder="Ej: Mitla 418, Mitras Norte, Monterrey"/>
-          </div>
-          <div><label className="lbl">Superficie m²</label><input className="f" value={m2} onChange={e=>setM2(e.target.value)} disabled={loading} placeholder="300" type="number"/></div>
-          <div><label className="lbl">Precio MXN</label><input className="f" value={px} onChange={e=>setPx(e.target.value)} disabled={loading} placeholder="8,000,000"/></div>
-          <div>
-            <label className="lbl">Tipo de análisis</label>
-            <select className="f" value={tipo} onChange={e=>{setTipo(e.target.value as Tipo);setProd("");}} disabled={loading} style={{cursor:"pointer"}}>
-              <option value="lineamientos">Lineamientos urbanísticos</option>
-              <option value="mercado">Estudio de mercado</option>
-              <option value="completo">Análisis completo</option>
-            </select>
-          </div>
-        </div>
-        {needsProd&&(
-          <div style={{marginBottom:12}}>
-            <label className="lbl">¿Qué quieres construir?</label>
-            <select className="f" value={prod} onChange={e=>setProd(e.target.value)} disabled={loading} style={{cursor:"pointer"}}>
-              <option value="">Selecciona un producto…</option>
-              <option value="Departamentos">Departamentos</option>
-              <option value="Casas / Townhouses">Casas / Townhouses</option>
-              <option value="Uso Mixto (depas + comercio)">Uso Mixto (depas + comercio)</option>
-              <option value="Locales comerciales">Locales comerciales</option>
-              <option value="Oficinas">Oficinas</option>
-            </select>
-          </div>
-        )}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:12}}>
-          <div>
-            <label className="lbl">Frente (m) <span style={{color:"#c0b8ae",fontWeight:400}}>opcional</span></label>
-            <input className="f" value={frente} onChange={e=>setFrente(e.target.value)} disabled={loading} placeholder="10" type="number"/>
-          </div>
-          <div>
-            <label className="lbl">Fondo (m) <span style={{color:"#c0b8ae",fontWeight:400}}>opcional</span></label>
-            <input className="f" value={fondo} onChange={e=>setFondo(e.target.value)} disabled={loading} placeholder="30" type="number"/>
-          </div>
-        </div>
-        {err&&<div style={{background:"#fef2f2",border:"1px solid #fecaca",borderRadius:10,padding:"10px 14px",color:"#dc2626",fontSize:13,marginBottom:12}}>{err}</div>}
-        <div style={{display:"flex",gap:10}}>
-          <button onClick={run} disabled={loading} style={{flex:1,background:loading?"#d4cfc8":"#1a1510",border:"none",borderRadius:10,padding:"12px 0",color:loading?"#7a6f64":"#fff",fontSize:14,fontWeight:600,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-            {loading?<><div style={{width:15,height:15,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>{STEPS[step]}</>:"Analizar terreno →"}
-          </button>
-          <button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");setFrente("");setFondo("");}} style={{background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"12px 18px",color:"#7a6f64",fontSize:13,cursor:"pointer",fontWeight:500,whiteSpace:"nowrap"}}>← Nuevo</button>
-        </div>
-        {loading&&<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:14}}>
-          {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?BLUE:"#EAE5DF",transform:i===step?"scale(1.5)":"scale(1)",transition:"all .3s"}}/>)}
-        </div>}
-      </div>
+    <div className="mob-results-content" style={{maxWidth:1200,margin:"0 auto",padding:"24px 20px 100px",width:"100%",position:"relative",zIndex:1}}>
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
       <div id="results-container" style={{paddingBottom:8}}>
