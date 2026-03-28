@@ -310,6 +310,7 @@ export default function Page(){
     finally{setLoading(false);}
   }
 
+  // sem/semCol kept for backward compat — actual display uses semFinal/semColFinal below
   const sem=res?.analisis?.semaforo;
   const semCol=sem==="VERDE"?"#15803d":sem==="AMARILLO"?"#d97706":sem==="ROJO"?"#dc2626":null;
 
@@ -351,20 +352,18 @@ export default function Page(){
     porcentaje_diferencia: rawMercado.porcentaje_sobre_mercado  || 0,
   } : null;
 
-  // Recalc financials from raw numbers
+  // Financiero ya viene calculado por TypeScript desde el backend — sin recalculo
   const fin=res?.analisis?.financiero;
-  const finF=fin?(()=>{
-    const ing=fin.ingreso_total_estimado||fin.ingreso_total_venta||0;
-    const cost=fin.costo_total_proyecto||0;
-    const util=ing-cost;
-    const mg=ing>0?util/ing*100:0;
-    const roi=cost>0?util/cost*100:0;
-    const plazo=fin.plazo_meses||24;
-    const tir=(Math.pow(1+roi/100,12/plazo)-1)*100;
-    return{...fin,ingreso_total_estimado:ing,utilidad_bruta:util,margen_bruto_pct:Math.round(mg*10)/10,roi_pct:Math.round(roi*10)/10,tir_estimada_pct:Math.round(tir*10)/10};
-  })():null;
+  const finF=fin||null;
 
-  const densVivHa=parseFloat(res?.lineamientos?.densidad_max_viv_ha)||0;
+  // Semáforo y veredicto vienen del backend (TypeScript puro)
+  const redFlagsMerged:string[] = res?.analisis?.red_flags || [];
+  const semFinal    = res?.analisis?.semaforo  || "";
+  const semColFinal = semFinal==="VERDE"?"#15803d":semFinal==="AMARILLO"?"#d97706":semFinal==="ROJO"?"#dc2626":null;
+  const verdFinal   = res?.analisis?.veredicto || "";
+  const justFinal   = res?.analisis?.justificacion_veredicto || "";
+
+    const densVivHa=parseFloat(res?.lineamientos?.densidad_max_viv_ha)||0;
   const m2Terreno=res?.terreno?.metros2||0;
   const unidadesMax=densVivHa>0?Math.floor(densVivHa*(m2Terreno/10000)):null;
 
@@ -856,10 +855,10 @@ export default function Page(){
           </div>
           <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:24,color:"#fff",lineHeight:1.1}}>{res.ubicacion.direccion}</div>
         </div>
-        {semCol&&(
-          <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 18px",borderRadius:100,background:`${semCol}22`,border:`1.5px solid ${semCol}44`}}>
-            <div style={{width:9,height:9,borderRadius:"50%",background:semCol,boxShadow:`0 0 8px ${semCol}`}}/>
-            <span style={{fontSize:12,fontWeight:700,color:semCol,letterSpacing:".08em"}}>{sem}</span>
+        {semColFinal&&(
+          <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 18px",borderRadius:100,background:`${semColFinal}22`,border:`1.5px solid ${semColFinal}44`}}>
+            <div style={{width:9,height:9,borderRadius:"50%",background:semColFinal,boxShadow:`0 0 8px ${semColFinal}`}}/>
+            <span style={{fontSize:12,fontWeight:700,color:semColFinal,letterSpacing:".08em"}}>{semFinal}</span>
           </div>
         )}
       </div>
@@ -1522,12 +1521,12 @@ export default function Page(){
           )}
 
           {/* Red flags + Fortalezas */}
-          {(res.analisis?.red_flags?.length>0||res.analisis?.fortalezas?.length>0)&&(
+          {(redFlagsMerged.length>0||res.analisis?.fortalezas?.length>0)&&(
             <div className="g2">
-              {res.analisis?.red_flags?.length>0&&(
+              {redFlagsMerged.length>0&&(
                 <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:14,padding:"20px 24px"}}>
                   <div className="lbl" style={{color:"#c2410c",marginBottom:10}}>Red Flags</div>
-                  {res.analisis.red_flags.map((f:string,i:number)=>(
+                  {redFlagsMerged.map((f:string,i:number)=>(
                     <div key={i} style={{display:"flex",gap:8,marginTop:9,fontSize:13,color:"#7c2d12",lineHeight:1.5,alignItems:"flex-start"}}>
                       <span style={{color:"#f97316",fontWeight:800,flexShrink:0}}>!</span>{f}
                     </div>
@@ -1548,11 +1547,11 @@ export default function Page(){
           )}
 
           {/* Veredicto */}
-          {res.analisis?.veredicto&&semCol&&(
-            <div style={{background:C.white,border:`2px solid ${semCol}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semCol}10`}}>
+          {verdFinal&&semColFinal&&(
+            <div style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`}}>
               <div className="lbl" style={{marginBottom:8}}>Veredicto Final</div>
-              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:semCol,lineHeight:1,marginBottom:14}}>{res.analisis.veredicto}</div>
-              <p style={{fontSize:14,color:"#3a3228",lineHeight:1.7,marginBottom:res.analisis.proximos_pasos?.length>0?14:0}}>{res.analisis.justificacion_veredicto}</p>
+              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:semColFinal,lineHeight:1,marginBottom:14}}>{verdFinal}</div>
+              <p style={{fontSize:14,color:"#3a3228",lineHeight:1.7,marginBottom:res.analisis.proximos_pasos?.length>0?14:0}}>{justFinal}</p>
               {res.analisis.proximos_pasos?.length>0&&(
                 <div style={{borderTop:"1px solid #EAE5DF",paddingTop:14}}>
                   <div className="lbl" style={{marginBottom:10}}>Próximos Pasos</div>
