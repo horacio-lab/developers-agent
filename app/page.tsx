@@ -484,7 +484,7 @@ export default function Page(){
         </div>
       </div>
       {res.giros?.permitidos?.length>0&&(
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
           {[
             {title:`Giros Permitidos (P) — ${res.giros.total_permitidos}`,items:res.giros.permitidos,col:"#15803d"},
             {title:`Giros Condicionados (C) — ${res.giros.total_condicionados}`,items:res.giros.condicionados||[],col:"#d97706"},
@@ -780,7 +780,7 @@ export default function Page(){
 
         {/* KPIs precio terreno vs mercado */}
         {pt&&(
-          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:12}}>
             {[
               {l:"Mercado — promedio zona",v:`${$(pt.promedio_m2)}/m²`,s:"terrenos en zona",col:undefined},
               {l:"Precio pedido terreno",v:`${$(res.terreno.precio_m2)}/m²`,s:"",col:undefined},
@@ -797,7 +797,7 @@ export default function Page(){
         )}
 
         {/* Fila 1: Precios + Tipologías */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
           {/* Gráfica precios por m² */}
           <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
@@ -846,7 +846,7 @@ export default function Page(){
         </div>
 
         {/* Fila 2: Competencia scatter + dispersión precios */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:14}}>
           {/* Competencia scatter */}
           <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
@@ -1007,7 +1007,7 @@ export default function Page(){
           </div>
         )}
       </div>
-      <div className="mob-header-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10}}>
+      <div className="mob-header-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,minWidth:0}}>
         {[
           {l:"ZONA",v:`${res.ubicacion.zona} · ${res.ubicacion.densidad}`},
           {l:"PRECIO / M² TERRENO",v:$(res.terreno.precio_m2)},
@@ -1052,32 +1052,58 @@ export default function Page(){
       /* ══ MOBILE RESPONSIVE ══ */
       @media(max-width:640px){
         /* Nav */
-        .mob-nav{padding:14px 16px !important;}
+        .mob-nav{padding:12px 16px !important;}
         .mob-logo{height:22px !important;}
         .mob-nav-btns{gap:6px !important;}
         .mob-nav-btn{padding:5px 10px !important;font-size:10px !important;}
         .mob-nav-pill{padding:5px 10px !important;font-size:10px !important;}
 
         /* Hero content */
-        .mob-center{padding:12px 16px 24px !important;}
-        .mob-symbol{width:80px !important;height:80px !important;}
-        .mob-h2{font-size:28px !important;margin-bottom:8px !important;}
-        .mob-subtitle{font-size:13px !important;margin-bottom:16px !important;}
+        .mob-center{padding:10px 14px 20px !important;}
+        .mob-symbol{width:72px !important;height:72px !important;}
+        .mob-h2{font-size:26px !important;margin-bottom:6px !important;}
+        .mob-subtitle{font-size:13px !important;margin-bottom:14px !important;}
 
         /* Hero form */
-        .mob-form{padding:20px 16px !important;border-radius:16px !important;}
+        .mob-form{padding:18px 14px !important;border-radius:14px !important;}
         .mob-form .fg{font-size:16px !important;padding:12px !important;}
+
+        /* Force ALL grids to single column on mobile */
+        .g2{grid-template-columns:1fr !important;}
         .g3{grid-template-columns:1fr !important;}
+        div[style*="repeat(4,1fr)"]{grid-template-columns:1fr 1fr !important;}
+        div[style*="repeat(3,1fr)"]{grid-template-columns:1fr !important;}
+        div[style*="1fr 1fr"]{grid-template-columns:1fr !important;}
+        div[style*="1fr 1fr 1fr"]{grid-template-columns:1fr !important;}
+        div[style*="minmax(148px"]{grid-template-columns:1fr 1fr !important;}
+        div[style*="minmax(160px"]{grid-template-columns:1fr 1fr !important;}
+        div[style*="minmax(130px"]{grid-template-columns:1fr 1fr !important;}
 
         /* Results page */
-        .mob-results-content{padding:16px 12px 80px !important;}
-        .mob-header-card{padding:16px !important;}
+        .mob-results-content{padding:12px 12px 100px !important;}
+        .mob-header-card{padding:14px 14px !important;border-radius:12px !important;}
         .mob-header-grid{grid-template-columns:1fr 1fr !important;}
-        .g2{grid-template-columns:1fr !important;}
-        .card{padding:14px 16px !important;}
+        .card{padding:14px 14px !important;}
+        .sec-hdr{margin-bottom:10px !important;}
+
+        /* Charts — no overflow */
+        canvas{max-width:100% !important;}
+
+        /* Tables and cards inside results */
+        div[style*="display:"grid""]{max-width:100% !important;}
+
+        /* Prevent horizontal overflow globally */
+        *{max-width:100% !important;box-sizing:border-box !important;}
+        img{max-width:100% !important;}
+
+        /* Parking calculator */
+        div[style*="1fr auto"]{grid-template-columns:1fr !important;}
 
         /* Sidebar */
         .mob-sidebar{width:100vw !important;max-width:100vw !important;}
+
+        /* Floating button */
+        div[style*="position:"fixed""][style*="bottom:0"]{padding:10px 14px 16px !important;}
       }
     `}</style>
 
@@ -1419,7 +1445,7 @@ export default function Page(){
       </button>
     </div>
 
-    <div className="mob-results-content" style={{maxWidth:1200,margin:"0 auto",padding:"24px 20px 100px",width:"100%",position:"relative",zIndex:1}}>
+    <div className="mob-results-content" style={{maxWidth:1200,margin:"0 auto",padding:"24px 20px 100px",width:"100%",position:"relative",zIndex:1,overflowX:"hidden" as const}}>
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
       <div id="results-container" style={{paddingBottom:8}}>
@@ -1550,7 +1576,7 @@ export default function Page(){
             <div className="card">
               <div className="lbl" style={{marginBottom:14}}>Reglamento de Construcción — Restricciones del Predio</div>
               <div className="g2">
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:10}}>
                   {[
                     {l:frente?"Frente":"Frente estimado",v:(()=>{const f=res.analisis.viabilidad_tecnica.frente_m||res.analisis.viabilidad_tecnica.frente_estimado_m;return f?`${f} m`:(frente?`${frente} m`:"—");})()},
                     {l:"Restricción frontal",v:res.analisis.viabilidad_tecnica.restriccion_frontal_m?`${res.analisis.viabilidad_tecnica.restriccion_frontal_m} m`:"—"},
