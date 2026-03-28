@@ -1208,7 +1208,7 @@ export default function Page(){
         div[style*="display:"grid""]{max-width:100% !important;}
 
         /* Prevent horizontal overflow globally */
-        *{max-width:100% !important;box-sizing:border-box !important;}
+        body,html{overflow-x:hidden;}
         img{max-width:100% !important;}
 
         /* Parking calculator */
@@ -1543,7 +1543,7 @@ export default function Page(){
 
 
 
-    <div className="mob-results-content" style={{width:"100%",boxSizing:"border-box" as const,padding:"24px min(5vw, 60px) 100px",position:"relative",zIndex:1,overflowX:"hidden" as const}}>
+    <div className="mob-results-content" style={{width:"100%",padding:"24px 28px 100px",boxSizing:"border-box" as const,position:"relative",zIndex:1}}>
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
       <div id="results-container" style={{paddingBottom:8,width:"100%",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
