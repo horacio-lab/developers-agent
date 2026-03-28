@@ -518,7 +518,7 @@ export default function Page(){
               </div>
             </div>
 
-            <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"end"}}>
+            <div className="park-calc-grid" style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"end"}}>
               <div>
                 <label style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".08em",textTransform:"uppercase" as const,display:"block",marginBottom:5}}>Giro / Uso</label>
                 <select className="f" value={parkGiro} onChange={e=>{setParkGiro(e.target.value);setParkResult(null);}} style={{cursor:"pointer"}}>
@@ -1204,21 +1204,14 @@ export default function Page(){
         /* Charts — no overflow */
         canvas{max-width:100% !important;}
 
-        /* Tables and cards inside results */
-        div[style*="display:"grid""]{max-width:100% !important;}
-
-        /* Prevent horizontal overflow globally */
-        body,html{overflow-x:hidden;}
+        /* Charts — prevent overflow */
         img{max-width:100% !important;}
 
-        /* Parking calculator */
-        div[style*="1fr auto"]{grid-template-columns:1fr !important;}
+        /* Parking calculator — collapse 1fr auto grid */
+        .park-calc-grid{grid-template-columns:1fr !important;}
 
-        /* Sidebar */
+        /* Sidebar full width on mobile */
         .mob-sidebar{width:100vw !important;max-width:100vw !important;}
-
-        /* Floating button */
-        div[style*="position:"fixed""][style*="bottom:0"]{padding:10px 14px 16px !important;}
       }
     `}</style>
 
@@ -1501,7 +1494,7 @@ export default function Page(){
         RESULTS PAGE — shown when there's a result
         Keeps its own nav + white bg layout
     ══════════════════════════════════════════ */}
-    {(res||loading)&&(<div style={{position:"relative",minHeight:"100vh",background:"#F8F5F0",width:"100%"}}>
+    {(res||loading)&&(<div style={{position:"fixed",inset:0,background:"#F8F5F0",overflowY:"auto",overflowX:"hidden",zIndex:5}}>
       {/* Fondo grid claro */}
       <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
         <svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}} xmlns="http://www.w3.org/2000/svg">
