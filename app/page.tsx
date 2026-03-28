@@ -1501,7 +1501,7 @@ export default function Page(){
         RESULTS PAGE — shown when there's a result
         Keeps its own nav + white bg layout
     ══════════════════════════════════════════ */}
-    {(res||loading)&&(<div style={{position:"relative",minHeight:"100vh",background:"#F8F5F0",display:"flex",flexDirection:"column" as const}}>
+    {(res||loading)&&(<div style={{position:"relative",minHeight:"100vh",background:"#F8F5F0",width:"100%"}}>
       {/* Fondo grid claro */}
       <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
         <svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}} xmlns="http://www.w3.org/2000/svg">
@@ -1543,7 +1543,7 @@ export default function Page(){
 
 
 
-    <div className="mob-results-content" style={{width:"100%",maxWidth:1200,margin:"0 auto",padding:"24px 32px 100px",position:"relative",zIndex:1,overflowX:"hidden" as const,flex:1}}>
+    <div className="mob-results-content" style={{width:"100%",boxSizing:"border-box" as const,padding:"24px min(5vw, 60px) 100px",position:"relative",zIndex:1,overflowX:"hidden" as const}}>
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
       <div id="results-container" style={{paddingBottom:8,width:"100%",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
