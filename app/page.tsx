@@ -504,8 +504,8 @@ export default function Page(){
           ))}
         </div>
       )}
-      {/* ── CALCULADORA ESTACIONAMIENTO PDU ── */}
-      {(()=>{
+      {/* ── CALCULADORA ESTACIONAMIENTO PDU — solo en lineamientos ── */}
+      {res?.tipo_analisis==="lineamientos"&&(()=>{
         const giroActual=GIROS_PARK.find(g=>g.codigo===parkGiro);
         const esVivienda=parkGiro==="1.1.2"||parkGiro==="1.1.3";
         return(
@@ -1426,24 +1426,7 @@ export default function Page(){
       )}
     </header>
 
-    {/* Floating "Nuevo análisis" button - fixed bottom */}
-    <div style={{position:"fixed",bottom:0,left:0,right:0,zIndex:20,padding:"12px 20px 20px",background:"linear-gradient(to top, rgba(245,242,238,1) 60%, rgba(245,242,238,0))",pointerEvents:"none"}}>
-      <button onClick={()=>setRes(null)} style={{
-        width:"100%",maxWidth:480,margin:"0 auto",display:"flex",
-        alignItems:"center",justifyContent:"center",gap:10,
-        background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",
-        border:"none",borderRadius:14,padding:"14px 24px",
-        color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",
-        boxShadow:"0 4px 24px rgba(37,99,168,.3)",letterSpacing:".02em",
-        pointerEvents:"auto" as const,
-      }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Analizar con otro tipo de análisis
-      </button>
-    </div>
+
 
     <div className="mob-results-content" style={{maxWidth:1200,margin:"0 auto",padding:"24px 20px 100px",width:"100%",position:"relative",zIndex:1,overflowX:"hidden" as const}}>
 
@@ -1489,6 +1472,17 @@ export default function Page(){
           <Header/>
           <LineamientosBlock/>
           
+          {/* ── BOTÓN NUEVO ANÁLISIS ── */}
+          <button onClick={()=>setRes(null)} style={{
+            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+            background:"transparent",border:"1.5px solid #2563a8",
+            borderRadius:12,padding:"13px 28px",width:"100%",
+            color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",
+            letterSpacing:".02em",marginTop:4,
+          }}>
+            ← Analizar con otro tipo de análisis
+          </button>
+
           {/* ── BOTÓN PDF ── */}
           <button onClick={generarPDF} disabled={pdfLoading} style={{
             display:"flex",alignItems:"center",justifyContent:"center",gap:10,
@@ -1526,6 +1520,17 @@ export default function Page(){
           </div>
           <LineamientosBlock/>
           
+          {/* ── BOTÓN NUEVO ANÁLISIS ── */}
+          <button onClick={()=>setRes(null)} style={{
+            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+            background:"transparent",border:"1.5px solid #2563a8",
+            borderRadius:12,padding:"13px 28px",width:"100%",
+            color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",
+            letterSpacing:".02em",marginTop:4,
+          }}>
+            ← Analizar con otro tipo de análisis
+          </button>
+
           {/* ── BOTÓN PDF ── */}
           <button onClick={generarPDF} disabled={pdfLoading} style={{
             display:"flex",alignItems:"center",justifyContent:"center",gap:10,
@@ -1571,45 +1576,23 @@ export default function Page(){
           </div>
           <LineamientosBlock/>
 
-          {/* Reglamento construcción */}
-          {res.analisis?.viabilidad_tecnica&&(
+          {/* Retos constructivos — si los hay */}
+          {res.analisis?.viabilidad_tecnica?.retos_constructivos?.length>0&&(
             <div className="card">
-              <div className="lbl" style={{marginBottom:14}}>Reglamento de Construcción — Restricciones del Predio</div>
-              <div className="g2">
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:10}}>
-                  {[
-                    {l:frente?"Frente":"Frente estimado",v:(()=>{const f=res.analisis.viabilidad_tecnica.frente_m||res.analisis.viabilidad_tecnica.frente_estimado_m;return f?`${f} m`:(frente?`${frente} m`:"—");})()},
-                    {l:"Restricción frontal",v:res.analisis.viabilidad_tecnica.restriccion_frontal_m?`${res.analisis.viabilidad_tecnica.restriccion_frontal_m} m`:"—"},
-                    {l:"Restricción lateral",v:res.analisis.viabilidad_tecnica.restriccion_lateral_m?`${res.analisis.viabilidad_tecnica.restriccion_lateral_m} m`:"—"},
-                    {l:"Restricción posterior",v:res.analisis.viabilidad_tecnica.restriccion_posterior_m?`${res.analisis.viabilidad_tecnica.restriccion_posterior_m} m`:"—"},
-                    {l:"Área neta real",v:res.analisis.viabilidad_tecnica.area_neta_construible_m2?`${$(res.analisis.viabilidad_tecnica.area_neta_construible_m2,"n")} m²`:"—"},
-                    {l:"Niveles posibles",v:res.analisis.viabilidad_tecnica.niveles_posibles||"—"},
-                  ].map(k=>(
-                    <div key={k.l} style={{background:"#F5F2EE",borderRadius:10,padding:"12px 14px"}}>
-                      <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
-                      <div style={{fontSize:14,fontWeight:700}}>{k.v}</div>
-                    </div>
-                  ))}
+              <div className="lbl" style={{marginBottom:10}}>Retos constructivos</div>
+              {res.analisis.viabilidad_tecnica.retos_constructivos.map((r:string,i:number)=>(
+                <div key={i} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #F0EBE5",fontSize:13,color:"#3a3228",lineHeight:1.4}}>
+                  <span style={{color:"#f97316",fontWeight:700,flexShrink:0}}>·</span>{r}
                 </div>
-                {res.analisis.viabilidad_tecnica.retos_constructivos?.length>0&&(
-                  <div>
-                    <div className="lbl" style={{marginBottom:8}}>Retos constructivos</div>
-                    {res.analisis.viabilidad_tecnica.retos_constructivos.map((r:string,i:number)=>(
-                      <div key={i} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #F0EBE5",fontSize:13,color:"#3a3228",lineHeight:1.4}}>
-                        <span style={{color:"#f97316",fontWeight:700,flexShrink:0}}>·</span>{r}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ))}
             </div>
           )}
 
           {/* Estacionamiento */}
           {res.analisis?.estacionamiento&&(
-            <div style={{background:res.analisis.estacionamiento.viable===false?"#FFF7ED":"#F0FDF4",border:`1px solid ${res.analisis.estacionamiento.viable===false?"#FED7AA":"#BBF7D0"}`,borderRadius:14,padding:"20px 24px"}}>
-              <div style={{fontSize:10,fontWeight:700,color:res.analisis.estacionamiento.viable===false?"#c2410c":"#15803d",letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
-                Análisis de Estacionamiento
+            <div style={{background:"#F8F5F0",border:"1px solid #EAE5DF",borderRadius:14,padding:"20px 24px"}}>
+              <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
+                Requerimiento de Estacionamiento — PDU Monterrey
               </div>
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:12}}>
                 {[
@@ -1667,7 +1650,7 @@ export default function Page(){
                 {[
                   {l:"Precio terreno",v:$(finF.precio_terreno)},
                   {l:"Costo construcción",v:$(finF.costo_construccion_total)},
-                  {l:"Estacionamiento",v:$(finF.costo_estacionamiento||0)},
+                  {l:"Estacionamiento",v:`${$(finF.costo_estacionamiento||0)}${finF.cajones_por_vivienda_pdu?` (${finF.cajones_requeridos||0} caj.)`:""}`},
                   {l:"Indirectos",v:`${finF.gastos_indirectos_pct||0}% → ${$(finF.gastos_indirectos||0)}`},
                   {l:"Comercialización",v:`${finF.comercializacion_pct||0}% → ${$(finF.comercializacion||0)}`},
                   {l:"Contingencias",v:`${finF.contingencias_pct||0}% → ${$(finF.contingencias||0)}`},
@@ -1776,6 +1759,17 @@ export default function Page(){
               </div>
             )}
           </div>
+
+            {/* ── BOTÓN NUEVO ANÁLISIS ── */}
+            <button onClick={()=>setRes(null)} style={{
+              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+              background:"transparent",border:"1.5px solid #2563a8",
+              borderRadius:12,padding:"13px 28px",width:"100%",
+              color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",
+              letterSpacing:".02em",marginTop:4,
+            }}>
+              ← Analizar con otro tipo de análisis
+            </button>
 
             {/* ── BOTÓN PDF ── */}
             <button onClick={generarPDF} disabled={pdfLoading} style={{
