@@ -1192,13 +1192,7 @@ export default function Page(){
         /* Force ALL grids to single column on mobile */
         .g2{grid-template-columns:1fr !important;}
         .g3{grid-template-columns:1fr !important;}
-        div[style*="repeat(4,1fr)"]{grid-template-columns:1fr 1fr !important;}
-        div[style*="repeat(3,1fr)"]{grid-template-columns:1fr !important;}
-        div[style*="1fr 1fr"]{grid-template-columns:1fr !important;}
-        div[style*="1fr 1fr 1fr"]{grid-template-columns:1fr !important;}
-        div[style*="minmax(148px"]{grid-template-columns:1fr 1fr !important;}
-        div[style*="minmax(160px"]{grid-template-columns:1fr 1fr !important;}
-        div[style*="minmax(130px"]{grid-template-columns:1fr 1fr !important;}
+
 
         /* Results page */
         .mob-results-content{padding:12px 12px 100px !important;}
