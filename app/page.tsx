@@ -463,7 +463,7 @@ export default function Page(){
     <div style={{display:"flex",flexDirection:"column" as const,gap:14}}>
       <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:C.light,marginBottom:14}}>Lineamientos Urbanísticos — PDU Monterrey 2013-2025</div>
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(148px,1fr))",gap:12}}>
+        <div className="stagger" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(148px,1fr))",gap:12}}>
           {[
             {l:"COS",v:res.lineamientos?.cos,s:"Coef. Ocupación"},
             {l:"CUS",v:res.lineamientos?.cus,s:"Coef. Utilización"},
@@ -992,7 +992,7 @@ export default function Page(){
 
   /* ── HEADER NEGRO ── */
   const Header=()=>(
-    <div className="mob-header-card" style={{background:C.dark,borderRadius:16,padding:"22px 28px",marginBottom:20}}>
+    <div className="mob-header-card" style={{background:C.dark,borderRadius:16,padding:"22px 28px",marginBottom:20,animation:"fadeUp .3s cubic-bezier(.16,1,.3,1) both"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap" as const,gap:12,marginBottom:16}}>
         <div>
           <div style={{fontSize:10,fontWeight:700,color:"rgba(255,255,255,.4)",letterSpacing:".1em",marginBottom:6}}>
@@ -1002,7 +1002,7 @@ export default function Page(){
         </div>
         {semColFinal&&(
           <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 18px",borderRadius:100,background:`${semColFinal}22`,border:`1.5px solid ${semColFinal}44`}}>
-            <div style={{width:9,height:9,borderRadius:"50%",background:semColFinal,boxShadow:`0 0 8px ${semColFinal}`}}/>
+            <div className="semaforo-dot" style={{width:9,height:9,borderRadius:"50%",background:semColFinal,color:semColFinal,boxShadow:`0 0 8px ${semColFinal}`}}/>
             <span style={{fontSize:12,fontWeight:700,color:semColFinal,letterSpacing:".08em"}}>{semFinal}</span>
           </div>
         )}
@@ -1048,6 +1048,128 @@ export default function Page(){
       .fg:focus{border-color:rgba(94,168,240,.7);background:rgba(255,255,255,.12);box-shadow:0 0 0 3px rgba(37,99,168,.2);}
       .fg option{background:#0f2240;color:#fff;}
       @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+      /* ══ ANIMATIONS ══ */
+      @keyframes fadeUp{
+        from{opacity:0;transform:translateY(16px)}
+        to{opacity:1;transform:translateY(0)}
+      }
+      @keyframes fadeIn{
+        from{opacity:0}
+        to{opacity:1}
+      }
+      @keyframes scaleIn{
+        from{opacity:0;transform:scale(.96)}
+        to{opacity:1;transform:scale(1)}
+      }
+      @keyframes slideInRight{
+        from{opacity:0;transform:translateX(24px)}
+        to{opacity:1;transform:translateX(0)}
+      }
+      @keyframes shimmer{
+        0%{background-position:-400px 0}
+        100%{background-position:400px 0}
+      }
+      @keyframes pulseGlow{
+        0%,100%{box-shadow:0 0 8px currentColor}
+        50%{box-shadow:0 0 18px currentColor}
+      }
+      @keyframes float{
+        0%,100%{transform:translateY(0)}
+        50%{transform:translateY(-6px)}
+      }
+
+      /* Apply fade-up to results animation class */
+      .up{animation:fadeUp .35s cubic-bezier(.16,1,.3,1) forwards;}
+
+      /* Stagger children of .stagger */
+      .stagger>*{opacity:0;animation:fadeUp .35s cubic-bezier(.16,1,.3,1) forwards;}
+      .stagger>*:nth-child(1){animation-delay:.04s}
+      .stagger>*:nth-child(2){animation-delay:.08s}
+      .stagger>*:nth-child(3){animation-delay:.12s}
+      .stagger>*:nth-child(4){animation-delay:.16s}
+      .stagger>*:nth-child(5){animation-delay:.20s}
+      .stagger>*:nth-child(6){animation-delay:.24s}
+      .stagger>*:nth-child(7){animation-delay:.28s}
+      .stagger>*:nth-child(8){animation-delay:.32s}
+      .stagger>*:nth-child(9){animation-delay:.36s}
+      .stagger>*:nth-child(10){animation-delay:.40s}
+      .stagger>*:nth-child(11){animation-delay:.44s}
+      .stagger>*:nth-child(12){animation-delay:.48s}
+
+      /* Cards hover lift */
+      .card{
+        transition:box-shadow .2s ease, transform .2s cubic-bezier(.16,1,.3,1);
+        will-change:transform;
+      }
+      .card:hover{
+        box-shadow:0 8px 32px rgba(37,99,168,.1);
+        transform:translateY(-1px);
+      }
+
+      /* Button press feedback — all buttons */
+      button{
+        transition:transform .15s cubic-bezier(.16,1,.3,1), box-shadow .15s ease, opacity .15s ease !important;
+        touch-action:manipulation;
+        -webkit-tap-highlight-color:transparent;
+      }
+      button:active{
+        transform:scale(.97) !important;
+        opacity:.92 !important;
+      }
+      button:hover:not(:disabled){
+        opacity:.95;
+      }
+      button:disabled{
+        cursor:not-allowed;
+        opacity:.5;
+      }
+
+      /* Input focus ring animation */
+      .f,.fg{
+        transition:border-color .2s ease, box-shadow .2s ease, background .2s ease !important;
+      }
+      .f:focus{
+        border-color:#2563a8 !important;
+        box-shadow:0 0 0 3px rgba(37,99,168,.1) !important;
+      }
+
+      /* Sidebar slide-in */
+      .sidebar-panel{
+        animation:slideInRight .3s cubic-bezier(.16,1,.3,1) forwards;
+      }
+
+      /* Modal scale-in */
+      .modal-panel{
+        animation:scaleIn .25s cubic-bezier(.16,1,.3,1) forwards;
+      }
+
+      /* Semáforo pulse */
+      .semaforo-dot{
+        animation:pulseGlow .8s ease-in-out 3;
+      }
+
+      /* Symbol float on hero */
+      .hero-symbol{
+        animation:float 4s ease-in-out infinite;
+      }
+
+      /* Shimmer skeleton */
+      .shimmer{
+        background:linear-gradient(90deg,#f0ece8 25%,#e8e3de 50%,#f0ece8 75%);
+        background-size:400px 100%;
+        animation:shimmer 1.4s ease-in-out infinite;
+      }
+
+      /* Overlay fade */
+      .overlay-fade{
+        animation:fadeIn .2s ease forwards;
+      }
+
+      /* Reduced motion — respect user preference */
+      @media(prefers-reduced-motion:reduce){
+        *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
+      }
 
       /* ══ MOBILE RESPONSIVE ══ */
       @media(max-width:640px){
@@ -1259,7 +1381,7 @@ export default function Page(){
         <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10}}>
           {/* Logo real grande */}
           <div style={{marginBottom:4,position:"relative"}}>
-            <img src="/LOGO SIMBOLO WHITE.png" alt="" className="mob-symbol" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
+            <img src="/LOGO SIMBOLO WHITE.png" alt="" className="mob-symbol hero-symbol" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
           </div>
 
           <h2 className="mob-h2" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(26px,3.5vw,48px)",lineHeight:1.1,color:"#fff",marginBottom:10,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
@@ -1337,14 +1459,14 @@ export default function Page(){
               color:"#fff",fontSize:14,fontWeight:700,cursor:loading?"not-allowed":"pointer",
               display:"flex",alignItems:"center",justifyContent:"center",gap:10,
               boxShadow:loading?"none":"0 4px 20px rgba(37,99,168,.5)",
-              letterSpacing:".02em",transition:"all .2s",
+              letterSpacing:".02em",transition:"all .25s cubic-bezier(.16,1,.3,1)",
             }}>
               {loading
                 ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>{STEPS[step]}</>
                 :"Generar reporte de factibilidad →"}
             </button>
             {loading&&<div style={{display:"flex",justifyContent:"center",gap:8,marginTop:14}}>
-              {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?"#5ea8f0":"rgba(255,255,255,.2)",transform:i===step?"scale(1.5)":"scale(1)",transition:"all .3s"}}/>)}
+              {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?"#5ea8f0":"rgba(255,255,255,.2)",transform:i===step?"scale(1.6)":"scale(1)",boxShadow:i===step?"0 0 10px #5ea8f0":"none",transition:"all .35s cubic-bezier(.16,1,.3,1)"}}/>)}
             </div>}
           </div>
 
@@ -1357,7 +1479,7 @@ export default function Page(){
             padding:"14px 20px",
             display:"flex",alignItems:"flex-start",gap:14}}>
             <div style={{width:32,height:32,borderRadius:8,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
-              background:tipo==="lineamientos"?"rgba(94,168,240,.15)":tipo==="mercado"?"rgba(217,119,6,.15)":"rgba(34,197,94,.15)"}}>
+              background:tipo==="lineamientos"?"rgba(94,168,240,.15)":tipo==="mercado"?"rgba(217,119,6,.15)":"rgba(34,197,94,.15)",transition:"background .25s ease"}}>
               {tipo==="lineamientos"?"🗺️":tipo==="mercado"?"📊":"📐"}
             </div>
             <div style={{flex:1}}>
@@ -1431,7 +1553,7 @@ export default function Page(){
     <div className="mob-results-content" style={{maxWidth:1200,margin:"0 auto",padding:"24px 20px 100px",width:"100%",position:"relative",zIndex:1,overflowX:"hidden" as const}}>
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
-      <div id="results-container" style={{paddingBottom:8}}>
+      <div id="results-container" style={{paddingBottom:8,animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
       {res&&!loading&&res.tipo_analisis==="error_uso_suelo"&&(
         <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
           <Header/>
@@ -1646,7 +1768,7 @@ export default function Page(){
                   <strong>Cálculo de ingresos:</strong> {finF.calculo_ingresos}
                 </div>
               )}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12}}>
+              <div className="stagger" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12}}>
                 {[
                   {l:"Precio terreno",v:$(finF.precio_terreno)},
                   {l:"Costo construcción",v:$(finF.costo_construccion_total)},
@@ -1702,7 +1824,7 @@ export default function Page(){
 
           {/* Veredicto */}
           {verdFinal&&semColFinal&&(
-            <div style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`}}>
+            <div style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`,animation:"scaleIn .4s cubic-bezier(.16,1,.3,1) .1s both"}}>
               <div className="lbl" style={{marginBottom:8}}>Veredicto Final</div>
               <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:semColFinal,lineHeight:1,marginBottom:14}}>{verdFinal}</div>
               <p style={{fontSize:14,color:"#3a3228",lineHeight:1.7,marginBottom:res.analisis.proximos_pasos?.length>0?14:0}}>{justFinal}</p>
@@ -1804,8 +1926,8 @@ export default function Page(){
       {/* ════ MODAL BIENVENIDA ════ */}
       {showWelcome&&(
         <>
-          <div onClick={()=>setShowWelcome(false)} style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.6)",backdropFilter:"blur(6px)"}}/>
-          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+          <div onClick={()=>setShowWelcome(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.6)",backdropFilter:"blur(6px)"}}/>
+          <div className="modal-panel" style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
             width:"min(520px,92vw)",
             background:"rgba(10,22,40,.92)",
             backdropFilter:"blur(32px)",
@@ -1881,8 +2003,8 @@ export default function Page(){
       {/* ════ MODAL LOGIN ════ */}
       {showLoginModal&&(
         <>
-          <div onClick={()=>setShowLoginModal(false)} style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
-          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+          <div onClick={()=>setShowLoginModal(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
+          <div className="modal-panel" style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
             width:"min(420px,90vw)",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
             borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",
             border:"1px solid rgba(234,229,223,.8)"}}>
@@ -1914,8 +2036,8 @@ export default function Page(){
       {/* ════ MODAL SIN CRÉDITOS ════ */}
       {showNoCreditsModal&&(
         <>
-          <div onClick={()=>setShowNoCreditsModal(false)} style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
-          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+          <div onClick={()=>setShowNoCreditsModal(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
+          <div className="modal-panel" style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
             width:"min(420px,90vw)",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
             borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",
             border:"1px solid rgba(234,229,223,.8)"}}>
@@ -1947,10 +2069,10 @@ export default function Page(){
       {sidebarOpen&&(
         <>
           {/* Overlay */}
-          <div onClick={()=>setSidebarOpen(false)} style={{position:"fixed",inset:0,zIndex:40,background:"rgba(0,0,0,.3)",backdropFilter:"blur(2px)"}}/>
+          <div onClick={()=>setSidebarOpen(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:40,background:"rgba(0,0,0,.3)",backdropFilter:"blur(2px)"}}/>
 
           {/* Panel */}
-          <div style={{position:"fixed",top:0,right:0,bottom:0,zIndex:50,width:380,maxWidth:"min(380px,100vw)",
+          <div className="sidebar-panel" style={{position:"fixed",top:0,right:0,bottom:0,zIndex:50,width:380,maxWidth:"min(380px,100vw)",
             background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
             borderLeft:"1px solid rgba(234,229,223,.8)",
             boxShadow:"-8px 0 40px rgba(0,0,0,.12)",
@@ -2014,7 +2136,7 @@ export default function Page(){
                           setRes({ok:true,tipo_analisis:r.tipo_analisis,ubicacion:d.ubicacion,terreno:d.terreno,lineamientos:d.lineamientos,giros:d.giros,analisis:d.analisis});
                           setSidebarOpen(false);
                         }
-                      }} style={{background:"rgba(255,255,255,.8)",border:"1px solid #EAE5DF",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left" as const,transition:"all .15s"}}>
+                      }} style={{background:"rgba(255,255,255,.8)",border:"1px solid #EAE5DF",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left" as const,transition:"all .2s cubic-bezier(.16,1,.3,1)"}}>
                         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
                           <div style={{flex:1,minWidth:0}}>
                             <div style={{fontSize:12,fontWeight:600,color:"#1a1510",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.direccion}</div>
