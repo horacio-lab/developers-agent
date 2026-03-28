@@ -196,6 +196,10 @@ export default function Page(){
   const [userSession, setUserSession] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  // Calculadora de estacionamiento PDU
+  const [parkGiro, setParkGiro] = useState("1.1.2");
+  const [parkM2, setParkM2] = useState("");
+  const [parkResult, setParkResult] = useState<any>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
@@ -388,6 +392,70 @@ export default function Page(){
     mercado_comercial: mp?.mercado_comercial || null,
   } : null;
 
+  // ── Tablas PDU estacionamiento (por distrito) ─────────────────────────────
+  const DISTRITOS_PARK = ["Centro","Industrial","Mitras Centro","Obispado","San Jerónimo",
+    "Cumbres","Cumbres Pte.","Cd. Solidaridad","Mitras Norte","San Bernabé",
+    "Valle Verde","Garza Sada","Independencia","Lázaro Cárdenas","Satélite"];
+  const CAJONES_MF    = [1,1,2.3,2.3,2.3,2.3,2.3,1.5,2,1.5,2,2.3,2,2.3,2.3];
+  const CAJONES_LOFT  = [1,1,1.2,1.2,1.2,1.2,1.2,1,1,1,1,1.2,1,1.2,1.2];
+  const M2_LOCALES    = [30,30,20,20,20,20,20,30,25,30,25,20,25,20,20];
+  const M2_OFICINAS   = [45,45,30,30,30,30,30,45,35,45,35,30,35,30,30];
+  const M2_RESTAUR    = [15,15,10,10,10,10,10,15,12,15,12,10,12,10,10];
+
+  function getDistritoIdxFront(dist:string):number{
+    const d=(dist||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+    const keys=["centro","industrial","mitras centro","obispado","san jeronimo","cumbres",
+      "cumbres pte","cd. solidaridad","mitras norte","san bernabe","valle verde",
+      "garza sada","independencia","lazaro cardenas","satelite"];
+    const idx=keys.findIndex(k=>d.includes(k)||k.includes(d));
+    return idx>=0?idx:0;
+  }
+
+  const GIROS_PARK=[
+    {codigo:"1.1.2",label:"Multifamiliar (departamentos)",unidad:"viviendas"},
+    {codigo:"1.1.3",label:"Multifamiliar Lofts/Suites ≤40 m²",unidad:"viviendas"},
+    {codigo:"2.3.1",label:"Locales comerciales agrupados",unidad:"m²"},
+    {codigo:"2.3.3",label:"Centro/Plaza comercial",unidad:"m²"},
+    {codigo:"3.4.5",label:"Restaurantes y cafés",unidad:"m²"},
+    {codigo:"3.9.3",label:"Oficinas corporativas",unidad:"m²"},
+    {codigo:"3.9.4",label:"Oficinas profesionistas",unidad:"m²"},
+  ];
+
+  function calcEstacionamiento(){
+    const dist=res?.ubicacion?.distrito||"";
+    const idx=getDistritoIdxFront(dist);
+    const giroData=GIROS_PARK.find(g=>g.codigo===parkGiro);
+    if(!giroData) return;
+    const esVivienda=parkGiro==="1.1.2"||parkGiro==="1.1.3";
+    const cantidad=esVivienda?(unidadesMax||0):parseFloat(parkM2||"0");
+    if(cantidad<=0){ setParkResult({error:"Ingresa una cantidad válida."}); return; }
+
+    let cajonesPorUnidad=1, m2PorCajon=0;
+    if(parkGiro==="1.1.2")        cajonesPorUnidad=CAJONES_MF[idx];
+    else if(parkGiro==="1.1.3")   cajonesPorUnidad=CAJONES_LOFT[idx];
+    else if(parkGiro==="2.3.1"||parkGiro==="2.3.3") m2PorCajon=M2_LOCALES[idx];
+    else if(parkGiro==="3.4.5")   m2PorCajon=M2_RESTAUR[idx];
+    else if(parkGiro==="3.9.3"||parkGiro==="3.9.4") m2PorCajon=M2_OFICINAS[idx];
+
+    const cajones=esVivienda
+      ? Math.ceil(cantidad*cajonesPorUnidad)
+      : Math.ceil(cantidad/m2PorCajon);
+    const m2Estac=cajones*12;
+
+    setParkResult({
+      giro: giroData.label,
+      distrito: DISTRITOS_PARK[idx]||dist,
+      cantidad, unidad: giroData.unidad,
+      cajones_por_unidad: esVivienda?cajonesPorUnidad:null,
+      m2_por_cajon: !esVivienda?m2PorCajon:null,
+      cajones, m2_estacionamiento: m2Estac,
+      calculo: esVivienda
+        ? `${cantidad} ${giroData.unidad} × ${cajonesPorUnidad} cajones = ${cajones} cajones`
+        : `${cantidad} m² ÷ ${m2PorCajon} m²/cajón = ${cajones} cajones`,
+      fuente: "PDU Monterrey 2013-2025, Matriz de Estacionamientos",
+    });
+  }
+
   const C={bg:"#F5F2EE",white:"#fff",dark:"#1a1510",blue:BLUE,border:"#EAE5DF",mid:"#7a6f64",light:"#a09888",vl:"#c0b8ae"};
 
   /* ── LINEAMIENTOS BLOCK ── */
@@ -436,6 +504,83 @@ export default function Page(){
           ))}
         </div>
       )}
+      {/* ── CALCULADORA ESTACIONAMIENTO PDU ── */}
+      {(()=>{
+        const giroActual=GIROS_PARK.find(g=>g.codigo===parkGiro);
+        const esVivienda=parkGiro==="1.1.2"||parkGiro==="1.1.3";
+        return(
+          <div style={{background:C.white,border:`2px solid ${BLUE}22`,borderRadius:14,padding:"20px 24px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:16}}>
+              <div style={{width:28,height:28,borderRadius:8,background:`${BLUE}15`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🅿️</div>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Calcular Estacionamiento PDU</div>
+                <div style={{fontSize:10,color:C.light,marginTop:1}}>Basado en Distrito: <strong style={{color:C.mid}}>{res?.ubicacion?.distrito||"—"}</strong></div>
+              </div>
+            </div>
+
+            <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"end"}}>
+              <div>
+                <label style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".08em",textTransform:"uppercase" as const,display:"block",marginBottom:5}}>Giro / Uso</label>
+                <select className="f" value={parkGiro} onChange={e=>{setParkGiro(e.target.value);setParkResult(null);}} style={{cursor:"pointer"}}>
+                  {GIROS_PARK.map(g=>(
+                    <option key={g.codigo} value={g.codigo}>{g.codigo} — {g.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {!esVivienda&&(
+                <div>
+                  <label style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".08em",textTransform:"uppercase" as const,display:"block",marginBottom:5}}>M² a construir</label>
+                  <input className="f" type="number" placeholder="Ej: 500" value={parkM2} onChange={e=>{setParkM2(e.target.value);setParkResult(null);}} style={{width:120}}/>
+                </div>
+              )}
+            </div>
+
+            {esVivienda&&unidadesMax!=null&&(
+              <div style={{marginTop:8,background:`${BLUE}08`,borderRadius:8,padding:"8px 12px",fontSize:12,color:BLUE}}>
+                Unidades PDU: <strong>{unidadesMax}</strong>
+                <span style={{color:C.light,marginLeft:6}}>({densVivHa} viv/Ha × {m2Terreno} m² / 10,000)</span>
+              </div>
+            )}
+
+            <button onClick={calcEstacionamiento} style={{
+              marginTop:12,width:"100%",background:`linear-gradient(135deg,${BLUE},#1a7a8a)`,
+              border:"none",borderRadius:10,padding:"11px",color:"#fff",
+              fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:".02em"
+            }}>
+              Calcular → PDU Monterrey
+            </button>
+
+            {parkResult&&!parkResult.error&&(
+              <div style={{marginTop:14,background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:12,padding:"16px 18px"}}>
+                <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:10}}>Resultado</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:10,marginBottom:12}}>
+                  {[
+                    {l:"Cajones requeridos",v:`${parkResult.cajones} cajones`,hl:true},
+                    {l:"Área estacionamiento",v:`${parkResult.m2_estacionamiento.toLocaleString("es-MX")} m²`,hl:false},
+                    {l:"Distrito",v:parkResult.distrito,hl:false},
+                    {l:"Norma aplicada",v:esVivienda?`${parkResult.cajones_por_unidad} caj/viv`:`1 cajón / ${parkResult.m2_por_cajon} m²`,hl:false},
+                  ].map(k=>(
+                    <div key={k.l} style={{background:k.hl?"#fff":"#F5FBFF",borderRadius:8,padding:"10px 12px",border:k.hl?`1.5px solid ${BLUE}44`:"1px solid #BAE6FD"}}>
+                      <div style={{fontSize:9,fontWeight:700,color:"#0369a1",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:3}}>{k.l}</div>
+                      <div style={{fontSize:k.hl?17:13,fontWeight:700,color:k.hl?BLUE:"#0c4a6e"}}>{k.v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{background:"#E0F2FE",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#0369a1"}}>
+                  <strong>Cálculo:</strong> {parkResult.calculo}
+                </div>
+                <div style={{marginTop:6,fontSize:10,color:"#7ab3cc"}}>
+                  Fuente: {parkResult.fuente}
+                </div>
+              </div>
+            )}
+            {parkResult?.error&&(
+              <div style={{marginTop:10,background:"#FEF2F2",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#dc2626"}}>{parkResult.error}</div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 
