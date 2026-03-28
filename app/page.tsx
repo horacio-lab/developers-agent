@@ -1084,7 +1084,7 @@ export default function Page(){
       }
 
       /* Apply fade-up to results animation class */
-      .up{animation:fadeUp .35s cubic-bezier(.16,1,.3,1) forwards;}
+      .up{animation:fadeUp .35s cubic-bezier(.16,1,.3,1) forwards;width:100%;}
 
       /* Stagger children of .stagger */
       .stagger>*{opacity:0;animation:fadeUp .35s cubic-bezier(.16,1,.3,1) forwards;}
@@ -1546,7 +1546,7 @@ export default function Page(){
     <div className="mob-results-content" style={{maxWidth:1200,margin:"0 auto",padding:"24px 20px 100px",width:"100%",position:"relative",zIndex:1,overflowX:"hidden" as const}}>
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
-      <div id="results-container" style={{paddingBottom:8,animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
+      <div id="results-container" style={{paddingBottom:8,width:"100%",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
       {res&&!loading&&res.tipo_analisis==="error_uso_suelo"&&(
         <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
           <Header/>
