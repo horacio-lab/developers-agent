@@ -484,7 +484,7 @@ export default function Page(){
         </div>
       </div>
       {res.giros?.permitidos?.length>0&&(
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
           {[
             {title:`Giros Permitidos (P) — ${res.giros.total_permitidos}`,items:res.giros.permitidos,col:"#15803d"},
             {title:`Giros Condicionados (C) — ${res.giros.total_condicionados}`,items:res.giros.condicionados||[],col:"#d97706"},
@@ -1054,6 +1054,10 @@ export default function Page(){
         from{opacity:0;transform:translateY(16px)}
         to{opacity:1;transform:translateY(0)}
       }
+      @keyframes modalIn{
+        from{opacity:0;transform:translate(-50%,-48%)}
+        to{opacity:1;transform:translate(-50%,-50%)}
+      }
       @keyframes fadeIn{
         from{opacity:0}
         to{opacity:1}
@@ -1137,11 +1141,6 @@ export default function Page(){
       /* Sidebar slide-in */
       .sidebar-panel{
         animation:slideInRight .3s cubic-bezier(.16,1,.3,1) forwards;
-      }
-
-      /* Modal scale-in */
-      .modal-panel{
-        animation:scaleIn .25s cubic-bezier(.16,1,.3,1) forwards;
       }
 
       /* Semáforo pulse */
@@ -1824,7 +1823,7 @@ export default function Page(){
 
           {/* Veredicto */}
           {verdFinal&&semColFinal&&(
-            <div style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`,animation:"scaleIn .4s cubic-bezier(.16,1,.3,1) .1s both"}}>
+            <div style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`,animation:"fadeUp .35s cubic-bezier(.16,1,.3,1) .05s both"}}>
               <div className="lbl" style={{marginBottom:8}}>Veredicto Final</div>
               <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:semColFinal,lineHeight:1,marginBottom:14}}>{verdFinal}</div>
               <p style={{fontSize:14,color:"#3a3228",lineHeight:1.7,marginBottom:res.analisis.proximos_pasos?.length>0?14:0}}>{justFinal}</p>
@@ -1927,8 +1926,8 @@ export default function Page(){
       {showWelcome&&(
         <>
           <div onClick={()=>setShowWelcome(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.6)",backdropFilter:"blur(6px)"}}/>
-          <div className="modal-panel" style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
-            width:"min(520px,92vw)",
+          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+            width:"min(520px,92vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",
             background:"rgba(10,22,40,.92)",
             backdropFilter:"blur(32px)",
             WebkitBackdropFilter:"blur(32px)",
@@ -2004,8 +2003,9 @@ export default function Page(){
       {showLoginModal&&(
         <>
           <div onClick={()=>setShowLoginModal(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
-          <div className="modal-panel" style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
-            width:"min(420px,90vw)",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
+          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+            width:"min(420px,90vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",
+            background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
             borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",
             border:"1px solid rgba(234,229,223,.8)"}}>
             <div style={{textAlign:"center" as const,marginBottom:24}}>
@@ -2037,8 +2037,9 @@ export default function Page(){
       {showNoCreditsModal&&(
         <>
           <div onClick={()=>setShowNoCreditsModal(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
-          <div className="modal-panel" style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
-            width:"min(420px,90vw)",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
+          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+            width:"min(420px,90vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",
+            background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
             borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",
             border:"1px solid rgba(234,229,223,.8)"}}>
             <div style={{textAlign:"center" as const,marginBottom:24}}>
