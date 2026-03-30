@@ -994,14 +994,7 @@ export default function Page(){
           </div>
         ))}
       </div>
-      {res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
-        <img
-          src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=19&size=1200x400&maptype=satellite&markers=color:red%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
-          style={{width:"100%",height:220,objectFit:"cover",borderRadius:"0 0 12px 12px",display:"block",marginTop:14}}
-          alt="Vista satelital"
-referrerPolicy="no-referrer-when-downgrade"
-        />
-      )}
+     
     </div>
   );
 
@@ -1354,7 +1347,26 @@ referrerPolicy="no-referrer-when-downgrade"
           {/* LINEAMIENTOS */}
           {res&&!loading&&res.tipo_analisis==="lineamientos"&&(
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-              <Header/>
+              <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
+                <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
+                  <img
+                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=17&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
+                    style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
+                    alt="Vista satelital"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"14px 20px",background:"rgba(10,22,40,.55)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/>
+                      <span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span>
+                    </div>
+                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}>
+                      <span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span>
+                      <span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span>
+                    </div>
+                  </div>
+                </div>
+              )}  <LineamientosBlock/>
               {LineamientosBlock()}
               <button onClick={()=>generarIsometrico(true)} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",letterSpacing:".02em"}}>
                 {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D<span style={{background:"rgba(255,255,255,.15)",borderRadius:100,padding:"2px 10px",fontSize:11,fontWeight:700,marginLeft:4}}>1 crédito</span></>}
@@ -1372,7 +1384,26 @@ referrerPolicy="no-referrer-when-downgrade"
           {/* MERCADO */}
           {res&&!loading&&res.tipo_analisis==="mercado"&&(
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-              <Header/>
+              <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
+                <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
+                  <img
+                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=17&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
+                    style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
+                    alt="Vista satelital"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"14px 20px",background:"rgba(10,22,40,.55)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/>
+                      <span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span>
+                    </div>
+                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}>
+                      <span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span>
+                      <span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span>
+                    </div>
+                  </div>
+                </div>
+              )}  <LineamientosBlock/>
               {MercadoChartsBlock()}
               {MercadoComercialBlock()}
               <div className="sec-hdr" style={{borderColor:BLUE,marginTop:8}}>
@@ -1391,7 +1422,26 @@ referrerPolicy="no-referrer-when-downgrade"
           {/* COMPLETO */}
           {res&&!loading&&res.tipo_analisis==="completo"&&(
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-              <Header/>
+              <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
+                <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
+                  <img
+                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=17&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
+                    style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
+                    alt="Vista satelital"
+                    referrerPolicy="no-referrer-when-downgrade"
+                  />
+                  <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"14px 20px",background:"rgba(10,22,40,.55)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/>
+                      <span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span>
+                    </div>
+                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}>
+                      <span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span>
+                      <span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span>
+                    </div>
+                  </div>
+                </div>
+              )}  <LineamientosBlock/>
               {res.analisis?.resumen_ejecutivo&&(
                 <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
                   <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:8}}>Resumen Ejecutivo</div>
