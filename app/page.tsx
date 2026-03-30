@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const API = "https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/analizar_terreno";
+const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog";
 type Tipo = "lineamientos"|"mercado"|"completo";
 
 const $   = (n:any,m="c")=>n!=null&&!isNaN(+n)?(m==="c"?new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(+n):new Intl.NumberFormat("es-MX",{maximumFractionDigits:0}).format(+n)):"—";
@@ -28,7 +29,6 @@ const BLUE="#2563a8", AMBER="#d97706", GREEN="#15803d";
    CHART COMPONENTS
 ══════════════════════════════════════════════════════ */
 
-// Horizontal bar chart
 function HBarChart({bars,h=180}:{bars:{l:string;v:number;c:string;max:number}[];h?:number}){
   const ref=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
@@ -47,18 +47,14 @@ function HBarChart({bars,h=180}:{bars:{l:string;v:number;c:string;max:number}[];
     bars.forEach((b,i)=>{
       const y=pad.t+i*gap;
       const bw=(b.v/maxV)*chartW;
-      // Label
       ctx.font="11px Inter,sans-serif"; ctx.fillStyle="#7a6f64"; ctx.textAlign="right";
       ctx.fillText(b.l,lw-8,y+bh/2+4);
-      // Bar bg
       ctx.fillStyle="#F0EBE5"; ctx.beginPath();
       if(ctx.roundRect)ctx.roundRect(lw,y,chartW,bh,4); else ctx.rect(lw,y,chartW,bh);
       ctx.fill();
-      // Bar fill
       ctx.fillStyle=b.c; ctx.beginPath();
       if(ctx.roundRect)ctx.roundRect(lw,y,bw,bh,4); else ctx.rect(lw,y,bw,bh);
       ctx.fill();
-      // Value
       ctx.font="bold 12px Inter,sans-serif"; ctx.fillStyle="#1a1510"; ctx.textAlign="left";
       ctx.fillText(`$${(b.v/1000).toFixed(0)}k`,lw+bw+8,y+bh/2+4);
     });
@@ -66,7 +62,6 @@ function HBarChart({bars,h=180}:{bars:{l:string;v:number;c:string;max:number}[];
   return <canvas ref={ref}/>;
 }
 
-// Vertical bar chart
 function VBarChart({bars,h=180}:{bars:{l:string;v:number;c:string}[];h?:number}){
   const ref=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
@@ -104,7 +99,6 @@ function VBarChart({bars,h=180}:{bars:{l:string;v:number;c:string}[];h?:number})
   return <canvas ref={ref}/>;
 }
 
-// Donut / pie chart for typologies
 function DonutChart({slices,h=160}:{slices:{l:string;pct:number;c:string}[];h?:number}){
   const ref=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
@@ -128,7 +122,6 @@ function DonutChart({slices,h=160}:{slices:{l:string;pct:number;c:string}[];h?:n
       ctx.strokeStyle="#F5F2EE"; ctx.lineWidth=2; ctx.stroke();
       angle+=sweep;
     });
-    // Legend
     slices.forEach((s,i)=>{
       const lx=W*.78, ly=h/2-(slices.length-1)*14+i*28;
       ctx.fillStyle=s.c; ctx.fillRect(lx,ly-8,12,12);
@@ -141,7 +134,6 @@ function DonutChart({slices,h=160}:{slices:{l:string;pct:number;c:string}[];h?:n
   return <canvas ref={ref}/>;
 }
 
-// Scatter / bubble chart for competition
 function ScatterChart({points,h=200}:{points:{x:number;y:number;label:string;size:number}[];h?:number}){
   const ref=useRef<HTMLCanvasElement>(null);
   useEffect(()=>{
@@ -160,7 +152,6 @@ function ScatterChart({points,h=200}:{points:{x:number;y:number;label:string;siz
     const toY=(v:number)=>p.t+(1-(v-minY)/(maxY-minY||1))*cH;
     const maxSz=Math.max(...points.map(pt=>pt.size),1);
     ctx.clearRect(0,0,W,h);
-    // Grid
     [0,.25,.5,.75,1].forEach(f=>{
       const y=p.t+f*cH;
       ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(W-p.r,y);
@@ -168,11 +159,9 @@ function ScatterChart({points,h=200}:{points:{x:number;y:number;label:string;siz
       ctx.font="10px Inter,sans-serif";ctx.fillStyle="#a09888";ctx.textAlign="right";
       ctx.fillText(`$${((minY+(maxY-minY)*(1-f))/1e6).toFixed(1)}M`,p.l-4,y+3);
     });
-    // X axis labels
     ctx.font="9px Inter,sans-serif";ctx.fillStyle="#a09888";ctx.textAlign="center";
     ctx.fillText(`${minX}m²`,p.l,h-4); ctx.fillText(`${maxX}m²`,toX(maxX),h-4);
     ctx.fillText("Tamaño unidad",W/2,h-4);
-    // Bubbles
     const colors=["#2563a8","#d97706","#15803d","#dc2626","#7c3aed"];
     points.forEach((pt,i)=>{
       const x=toX(pt.x), y=toY(pt.y);
@@ -196,13 +185,16 @@ export default function Page(){
   const [userSession, setUserSession] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  // Calculadora de estacionamiento PDU
   const [parkGiro, setParkGiro] = useState("1.1.2");
   const [parkM2, setParkM2] = useState("");
   const [parkResult, setParkResult] = useState<any>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeName, setWelcomeName] = useState("");
   const [showNoCreditsModal, setShowNoCreditsModal] = useState(false);
+  // ── NUEVO: estados Mercado Pago ──
+  const [comprando, setComprando] = useState(false);
+  const [showPaquetesModal, setShowPaquetesModal] = useState(false);
+  const [pagoExitoso, setPagoExitoso] = useState(false);
   const [creditos, setCreditos] = useState<number|null>(null);
   const [historial, setHistorial] = useState<any[]>([]);
   const [reporteAbierto, setReporteAbierto] = useState<any>(null);
@@ -219,9 +211,8 @@ export default function Page(){
   const [res,setRes]=useState<any>(null); const [err,setErr]=useState("");
   const needsProd=tipo==="mercado"||tipo==="completo";
 
-  // Cargar sesión al montar y escuchar cambios de auth
+  // ── Auth + restaurar form pendiente ──
   useEffect(()=>{
-    // Restore pending form data after login redirect
     const pending = localStorage.getItem("ue_pending");
     if(pending){
       try{
@@ -236,7 +227,6 @@ export default function Page(){
         localStorage.removeItem("ue_pending");
       }catch(e){}
     }
-
     supabase.auth.getSession().then(({data:{session}})=>{
       setUserSession(session);
       if(session?.user?.id) cargarPerfil(session.user.id);
@@ -247,6 +237,27 @@ export default function Page(){
       else { setCreditos(null); setHistorial([]); }
     });
     return()=>subscription.unsubscribe();
+  },[]);
+
+  // ── NUEVO: detectar regreso de Mercado Pago ──
+  useEffect(()=>{
+    const params = new URLSearchParams(window.location.search);
+    const pago = params.get("pago");
+    const cr   = params.get("cr");
+    if(pago === "exitoso"){
+      window.history.replaceState({}, "", "/");
+      setPagoExitoso(true);
+      // Esperar 2s para que el webhook de MP procese y luego recargar créditos
+      setTimeout(()=>{
+        supabase.auth.getSession().then(({data:{session}})=>{
+          if(session?.user?.id) cargarPerfil(session.user.id);
+        });
+        setTimeout(()=>setPagoExitoso(false), 5000);
+      }, 2000);
+    } else if(pago === "fallido"){
+      window.history.replaceState({}, "", "/");
+      alert("El pago no se completó. Puedes intentarlo de nuevo.");
+    }
   },[]);
 
   async function cargarPerfil(userId:string, isNew=false){
@@ -289,12 +300,10 @@ export default function Page(){
       const token = userSession?.access_token ?? "";
       if (!token) {
         setLoading(false);
-        // Save form data so it survives the login redirect
         localStorage.setItem("ue_pending", JSON.stringify({dir,m2:m2,px,tipo,prod,frente,fondo}));
         setShowLoginModal(true);
         return;
       }
-      const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog";
       const r=await fetch(API,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${ANON_KEY}`,"x-user-token":token},body:JSON.stringify(body)});
       const d=await r.json();
       if(d.necesita_producto){setErr("Indica qué quieres construir.");setLoading(false);return;}
@@ -314,18 +323,44 @@ export default function Page(){
     finally{setLoading(false);}
   }
 
-  // sem/semCol kept for backward compat — actual display uses semFinal/semColFinal below
+  // ── NUEVO: función de compra con Mercado Pago ──
+  async function comprarCreditos(paquete: "3"|"10"|"25"|"60"){
+    if(!userSession?.access_token){ setShowLoginModal(true); return; }
+    setComprando(true);
+    try{
+      const r = await fetch(
+        "https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/crear_preferencia_mp",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${ANON_KEY}`,
+            "x-user-token":  userSession.access_token,
+          },
+          body: JSON.stringify({ paquete, origin: window.location.origin }),
+        }
+      );
+      const d = await r.json();
+      if(d.init_point){
+        window.location.href = d.init_point;
+      } else {
+        alert("Error al iniciar el pago: " + (d.error || "intenta de nuevo"));
+        setComprando(false);
+      }
+    }catch(e){
+      alert("Error de conexión. Intenta de nuevo.");
+      setComprando(false);
+    }
+  }
+
   const sem=res?.analisis?.semaforo;
   const semCol=sem==="VERDE"?"#15803d":sem==="AMARILLO"?"#d97706":sem==="ROJO"?"#dc2626":null;
 
-  // Normalize market data — soporta estructura nueva (mercado_residencial) y legacy
   const rawMercado   = res?.analisis?.mercado || null;
-  // Nueva estructura: mercado.mercado_residencial
-  // Legacy (modo mercado): analisis.mercado_residencial directo
   const rawRes = rawMercado?.mercado_residencial
     || res?.analisis?.mercado_residencial
-    || res?.analisis?.mercado_producto   // legacy
-    || rawMercado                        // fallback completo
+    || res?.analisis?.mercado_producto
+    || rawMercado
     || null;
   const rawCom = rawMercado?.mercado_comercial
     || res?.analisis?.mercado_comercial
@@ -344,11 +379,9 @@ export default function Page(){
     proyectos_competencia: (rawRes.proyectos_competencia||[])
       .map((p:any)=>typeof p==="string"?{nombre:p,precio_desde:0,precio_hasta:0,m2_min:0,m2_max:0}:p),
     tipologias: rawRes.tipologias || [],
-    // Datos comerciales (solo mixto)
     mercado_comercial: rawCom || null,
   } : null;
 
-  // Normalize precio terreno
   const rawPt = res?.analisis?.precio_terreno_mercado || null;
   const pt = rawPt ? rawPt : rawMercado ? {
     promedio_m2:           rawMercado.precio_terreno_mercado_m2_promedio || 0,
@@ -356,24 +389,20 @@ export default function Page(){
     porcentaje_diferencia: rawMercado.porcentaje_sobre_mercado  || 0,
   } : null;
 
-  // Financiero ya viene calculado por TypeScript desde el backend — sin recalculo
   const fin=res?.analisis?.financiero;
   const finF=fin||null;
 
-  // Semáforo y veredicto vienen del backend (TypeScript puro)
   const redFlagsMerged:string[] = res?.analisis?.red_flags || [];
   const semFinal    = res?.analisis?.semaforo  || "";
   const semColFinal = semFinal==="VERDE"?"#15803d":semFinal==="AMARILLO"?"#d97706":semFinal==="ROJO"?"#dc2626":null;
   const verdFinal   = res?.analisis?.veredicto || "";
   const justFinal   = res?.analisis?.justificacion_veredicto || "";
 
-    const densVivHa=parseFloat(res?.lineamientos?.densidad_max_viv_ha)||0;
+  const densVivHa=parseFloat(res?.lineamientos?.densidad_max_viv_ha)||0;
   const m2Terreno=res?.terreno?.metros2||0;
   const unidadesMax=densVivHa>0?Math.floor(densVivHa*(m2Terreno/10000)):null;
 
-  // Extract market data
   const rawPot = res?.analisis?.potencial_proyecto || null;
-  // rawPot: nueva estructura está en financiero.modelo_residencial o potencial_proyecto
   const rawPotResidencial = res?.analisis?.financiero?.modelo_residencial || rawPot || null;
   const rawPotComercial   = res?.analisis?.financiero?.modelo_comercial   || null;
 
@@ -392,7 +421,6 @@ export default function Page(){
     mercado_comercial: mp?.mercado_comercial || null,
   } : null;
 
-  // ── Tablas PDU estacionamiento (por distrito) ─────────────────────────────
   const DISTRITOS_PARK = ["Centro","Industrial","Mitras Centro","Obispado","San Jerónimo",
     "Cumbres","Cumbres Pte.","Cd. Solidaridad","Mitras Norte","San Bernabé",
     "Valle Verde","Garza Sada","Independencia","Lázaro Cárdenas","Satélite"];
@@ -429,19 +457,16 @@ export default function Page(){
     const esVivienda=parkGiro==="1.1.2"||parkGiro==="1.1.3";
     const cantidad=esVivienda?(unidadesMax||0):parseFloat(parkM2||"0");
     if(cantidad<=0){ setParkResult({error:"Ingresa una cantidad válida."}); return; }
-
     let cajonesPorUnidad=1, m2PorCajon=0;
     if(parkGiro==="1.1.2")        cajonesPorUnidad=CAJONES_MF[idx];
     else if(parkGiro==="1.1.3")   cajonesPorUnidad=CAJONES_LOFT[idx];
     else if(parkGiro==="2.3.1"||parkGiro==="2.3.3") m2PorCajon=M2_LOCALES[idx];
     else if(parkGiro==="3.4.5")   m2PorCajon=M2_RESTAUR[idx];
     else if(parkGiro==="3.9.3"||parkGiro==="3.9.4") m2PorCajon=M2_OFICINAS[idx];
-
     const cajones=esVivienda
       ? Math.ceil(cantidad*cajonesPorUnidad)
       : Math.ceil(cantidad/m2PorCajon);
     const m2Estac=cajones*12;
-
     setParkResult({
       giro: giroData.label,
       distrito: DISTRITOS_PARK[idx]||dist,
@@ -504,7 +529,6 @@ export default function Page(){
           ))}
         </div>
       )}
-      {/* ── CALCULADORA ESTACIONAMIENTO PDU — solo en lineamientos ── */}
       {res?.tipo_analisis==="lineamientos"&&(()=>{
         const giroActual=GIROS_PARK.find(g=>g.codigo===parkGiro);
         const esVivienda=parkGiro==="1.1.2"||parkGiro==="1.1.3";
@@ -517,7 +541,6 @@ export default function Page(){
                 <div style={{fontSize:10,color:C.light,marginTop:1}}>Basado en Distrito: <strong style={{color:C.mid}}>{res?.ubicacion?.distrito||"—"}</strong></div>
               </div>
             </div>
-
             <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"end"}}>
               <div>
                 <label style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".08em",textTransform:"uppercase" as const,display:"block",marginBottom:5}}>Giro / Uso</label>
@@ -527,7 +550,6 @@ export default function Page(){
                   ))}
                 </select>
               </div>
-
               {!esVivienda&&(
                 <div>
                   <label style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".08em",textTransform:"uppercase" as const,display:"block",marginBottom:5}}>M² a construir</label>
@@ -535,14 +557,12 @@ export default function Page(){
                 </div>
               )}
             </div>
-
             {esVivienda&&unidadesMax!=null&&(
               <div style={{marginTop:8,background:`${BLUE}08`,borderRadius:8,padding:"8px 12px",fontSize:12,color:BLUE}}>
                 Unidades PDU: <strong>{unidadesMax}</strong>
                 <span style={{color:C.light,marginLeft:6}}>({densVivHa} viv/Ha × {m2Terreno} m² / 10,000)</span>
               </div>
             )}
-
             <button onClick={calcEstacionamiento} style={{
               marginTop:12,width:"100%",background:`linear-gradient(135deg,${BLUE},#1a7a8a)`,
               border:"none",borderRadius:10,padding:"11px",color:"#fff",
@@ -550,7 +570,6 @@ export default function Page(){
             }}>
               Calcular → PDU Monterrey
             </button>
-
             {parkResult&&!parkResult.error&&(
               <div style={{marginTop:14,background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:12,padding:"16px 18px"}}>
                 <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:10}}>Resultado</div>
@@ -570,9 +589,7 @@ export default function Page(){
                 <div style={{background:"#E0F2FE",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#0369a1"}}>
                   <strong>Cálculo:</strong> {parkResult.calculo}
                 </div>
-                <div style={{marginTop:6,fontSize:10,color:"#7ab3cc"}}>
-                  Fuente: {parkResult.fuente}
-                </div>
+                <div style={{marginTop:6,fontSize:10,color:"#7ab3cc"}}>Fuente: {parkResult.fuente}</div>
               </div>
             )}
             {parkResult?.error&&(
@@ -584,8 +601,6 @@ export default function Page(){
     </div>
   );
 
-
-  
   async function generarIsometrico() {
     if(!res||!res.analisis) return;
     setIsoLoading(true);
@@ -600,26 +615,20 @@ export default function Page(){
       const frente = parseFloat(vt.frente_m) || parseFloat(vt.frente_estimado_m) || Math.round(Math.sqrt(m2*0.6));
       const fondo  = parseFloat(vt.fondo_m) || Math.round(m2/frente);
       const huella = lin.huella_max_m2||Math.round(m2*cos);
-      
-      // Altura libre = 12 pisos como default visual en isométrico
       const alturaMaxStr = String(lin.altura_max || "");
       const esAlturaLibre = /libre|según dictamen|dictamen/i.test(alturaMaxStr) || alturaMaxStr === "N/D";
       const niveles = (() => {
         if (esAlturaLibre) return 12;
-        // Intentar leer de niveles_posibles (análisis completo)
         const nivStr = vt.niveles_posibles || "";
         const mNiv = nivStr.match(/(\d+)\s*nivel/i);
         if (mNiv) return parseInt(mNiv[1]);
-        // Leer de altura_max directamente: "12 niveles / 48 m"
         const mAlt = alturaMaxStr.match(/(\d+)\s*nivel/i);
         if (mAlt) return parseInt(mAlt[1]);
-        // Fallback: cus/cos
         return Math.max(1, Math.round(cus/cos));
       })();
-
       const r = await fetch("https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/generar_isometrico",{
         method:"POST",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog"},
+        headers:{"Content-Type":"application/json","Authorization":`Bearer ${ANON_KEY}`},
         body:JSON.stringify({
           frente, fondo, metros2:m2, cos, cus,
           altura_max:parseFloat(lin.altura_max)||18,
@@ -643,7 +652,6 @@ export default function Page(){
     finally { setIsoLoading(false); }
   }
 
-
   function loadScript(src:string):Promise<void>{
     return new Promise((res,rej)=>{
       if(document.querySelector(`script[src="${src}"]`)){res();return;}
@@ -655,21 +663,15 @@ export default function Page(){
   async function generarPDF(){
     if(!res)return;
     setPdfLoading(true);
-
-    // Temp image element that replaces the iframe for html2canvas
     let isoImg:HTMLImageElement|null=null;
     const iframeEl=iframeRef.current;
-
     try{
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
       const {jsPDF}=(window as any).jspdf;
       const html2canvas=(window as any).html2canvas;
-
       const el=document.getElementById("results-container");
       if(!el){alert("No hay reporte que exportar.");return;}
-
-      // ── Step 1: Get isometric snapshot via postMessage ──────────
       if(iframeEl&&isoHtml){
         const isoData=await new Promise<string|null>((resolve)=>{
           const handler=(e:MessageEvent)=>{
@@ -682,8 +684,6 @@ export default function Page(){
           iframeEl.contentWindow?.postMessage("unearta_capture","*");
           setTimeout(()=>{window.removeEventListener("message",handler);resolve(null);},3500);
         });
-
-        // ── Step 2: Replace iframe with <img> so html2canvas can see it
         if(isoData&&iframeEl.parentElement){
           isoImg=document.createElement("img");
           isoImg.src=isoData;
@@ -692,55 +692,36 @@ export default function Page(){
           iframeEl.parentElement.insertBefore(isoImg,iframeEl);
         }
       }
-
-      // ── Step 3: Hide fixed background during capture ─────────────
       const bgEl = document.querySelector('[style*="position: fixed"][style*="pointer-events: none"]') as HTMLElement;
       const bgEl2 = document.querySelector('[style*="position:fixed"][style*="pointerEvents"]') as HTMLElement;
       if(bgEl) bgEl.style.display = 'none';
       if(bgEl2) bgEl2.style.display = 'none';
-
-      // ── Step 4: Capture the full page ───────────────────────────
       window.scrollTo(0,0);
       await new Promise(r=>setTimeout(r,120));
-
       const canvas=await html2canvas(el,{
-        scale:2,
-        useCORS:true,
-        allowTaint:true,
-        backgroundColor:"#ffffff",
-        logging:false,
-        windowWidth:1100,
-        windowHeight:el.scrollHeight,
+        scale:2,useCORS:true,allowTaint:true,backgroundColor:"#ffffff",logging:false,
+        windowWidth:1100,windowHeight:el.scrollHeight,
         onclone:(clonedDoc: Document)=>{
-          // Mostrar membrete
           const membrete=clonedDoc.getElementById("pdf-membrete");
           if(membrete) membrete.style.display="flex";
-          // Ocultar nav sticky
           const nav=clonedDoc.querySelector("header");
           if(nav)(nav as HTMLElement).style.display="none";
-          // Matar animaciones — fuerza todo visible
           const styleKill=clonedDoc.createElement("style");
           styleKill.textContent=`*{animation:none !important;animation-delay:0ms !important;animation-duration:0ms !important;transition:none !important;opacity:1 !important;transform:none !important;}`;
           clonedDoc.head.appendChild(styleKill);
-          // Expandir listas con overflow
           clonedDoc.querySelectorAll('[style*="overflow"]').forEach((node)=>{
             const el2 = node as HTMLElement;
             if(el2.style.overflowY==='auto'||el2.style.overflowY==='scroll'){
-              el2.style.maxHeight='none';
-              el2.style.overflowY='visible';
+              el2.style.maxHeight='none'; el2.style.overflowY='visible';
             }
           });
         }
       });
-
-      // ── Step 4: Restore background ──────────────────────────────
       if(bgEl) bgEl.style.display = '';
       if(bgEl2) bgEl2.style.display = '';
-
-      // ── Step 4: Build PDF pages ──────────────────────────────────
       const imgData=canvas.toDataURL("image/jpeg",0.92);
       const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
-      const margin=10; // 10mm margins
+      const margin=10;
       const W=210-margin*2, H=297;
       const imgH=(canvas.height*W)/canvas.width;
       let posY=margin;
@@ -751,29 +732,24 @@ export default function Page(){
         posY-=(H-margin*2);
         if(remaining>0)doc.addPage();
       }
-
       const fecha=new Date().toISOString().slice(0,10);
-      const dir=(res.ubicacion?.direccion||"terreno").slice(0,30).replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,"_");
-      doc.save(`unearth_${dir}_${fecha}.pdf`);
-
+      const dirPdf=(res.ubicacion?.direccion||"terreno").slice(0,30).replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,"_");
+      doc.save(`unearth_${dirPdf}_${fecha}.pdf`);
     }catch(err){console.error(err);alert("Error generando PDF. Intenta de nuevo.");}
     finally{
-      // ── Restore iframe ───────────────────────────────────────────
       if(isoImg){isoImg.remove();}
       if(iframeEl){iframeEl.style.display="block";}
       setPdfLoading(false);
     }
   }
 
-
   /* ── MERCADO CHARTS BLOCK ── */
   const MercadoChartsBlock=()=>{
     if(!mpData) return null;
     const comps=mpData.competencia||[];
     const tipos=mpData.tipologias||[];
-  return (
+    return (
       <div style={{display:"flex",flexDirection:"column" as const,gap:14}}>
-        {/* Badge compatibilidad */}
         {res.analisis?.producto_compatible!=null&&(
           <div style={{display:"flex",alignItems:"flex-start",gap:10,padding:"12px 18px",background:res.analisis.producto_compatible?"#F0FDF4":"#FEF2F2",border:`1px solid ${res.analisis.producto_compatible?"#BBF7D0":"#FECACA"}`,borderRadius:12}}>
             <div style={{width:9,height:9,borderRadius:"50%",background:res.analisis.producto_compatible?"#15803d":"#dc2626",flexShrink:0,marginTop:3}}/>
@@ -787,8 +763,6 @@ export default function Page(){
             </div>
           </div>
         )}
-
-        {/* KPIs precio terreno vs mercado */}
         {pt&&(
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:12}}>
             {[
@@ -805,10 +779,7 @@ export default function Page(){
             ))}
           </div>
         )}
-
-        {/* Fila 1: Precios + Tipologías */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:14}}>
-          {/* Gráfica precios por m² */}
           <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Precios de mercado — {mpData.tipo||prod} / m²
@@ -827,8 +798,6 @@ export default function Page(){
               <span>Tendencia: <strong>{(mpData.tendencia||"").toUpperCase()}</strong></span>
             </div>
           </div>
-
-          {/* Tipologías donut */}
           <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>Tipologías del mercado</div>
             {tipos.length>0?(
@@ -854,10 +823,7 @@ export default function Page(){
             )}
           </div>
         </div>
-
-        {/* Fila 2: Competencia scatter + dispersión precios */}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:14}}>
-          {/* Competencia scatter */}
           <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Competencia — tamaño vs precio total
@@ -888,8 +854,6 @@ export default function Page(){
               ))}
             </div>
           </div>
-
-          {/* Dispersión precios horizontal */}
           <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Dispersión de precios por m² — competencia
@@ -913,8 +877,6 @@ export default function Page(){
             )}
           </div>
         </div>
-
-        {/* Cálculo de ingresos */}
         {(mpData.ing_calc||mpData.unidades>0)&&(
           <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>Potencial del proyecto — cálculo de ingresos</div>
@@ -934,8 +896,6 @@ export default function Page(){
             </div>
           </div>
         )}
-
-        {/* Resumen IA */}
         {res.analisis?.recomendacion&&(
           <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:8}}>Análisis IA — Recomendación</div>
@@ -946,7 +906,6 @@ export default function Page(){
     );
   };
 
-  /* ── MERCADO COMERCIAL BLOCK (solo mixto) ── */
   const MercadoComercialBlock=()=>{
     const com=mpData?.mercado_comercial;
     if(!com)return null;
@@ -968,7 +927,6 @@ export default function Page(){
             </div>
           ))}
         </div>
-        {/* Gráfica de barra única: renta promedio */}
         {com.precio_renta_m2_mes_local>0&&(
           <div style={{marginTop:8}}>
             <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:8}}>
@@ -1052,192 +1010,67 @@ export default function Page(){
       @keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
       .up{animation:up .3s ease forwards;}
       .sec-hdr{border-left:3px solid;padding-left:14px;margin-bottom:14px;}
-      /* Glass form inputs */
       .fg{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;padding:11px 14px;font-size:14px;color:#fff;outline:none;transition:border .2s,background .2s;font-family:inherit;}
       .fg::placeholder{color:rgba(180,210,240,.35);}
       .fg:focus{border-color:rgba(94,168,240,.7);background:rgba(255,255,255,.12);box-shadow:0 0 0 3px rgba(37,99,168,.2);}
       .fg option{background:#0f2240;color:#fff;}
       @keyframes orbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-
-      /* ══ ANIMATIONS ══ */
-      @keyframes fadeUp{
-        from{opacity:0;transform:translateY(16px)}
-        to{opacity:1;transform:translateY(0)}
-      }
-      @keyframes modalIn{
-        from{opacity:0;transform:translate(-50%,-48%)}
-        to{opacity:1;transform:translate(-50%,-50%)}
-      }
-      @keyframes fadeIn{
-        from{opacity:0}
-        to{opacity:1}
-      }
-      @keyframes scaleIn{
-        from{opacity:0;transform:scale(.96)}
-        to{opacity:1;transform:scale(1)}
-      }
-      @keyframes slideInRight{
-        from{opacity:0;transform:translateX(24px)}
-        to{opacity:1;transform:translateX(0)}
-      }
-      @keyframes shimmer{
-        0%{background-position:-400px 0}
-        100%{background-position:400px 0}
-      }
-      @keyframes pulseGlow{
-        0%,100%{box-shadow:0 0 8px currentColor}
-        50%{box-shadow:0 0 18px currentColor}
-      }
-      @keyframes float{
-        0%,100%{transform:translateY(0)}
-        50%{transform:translateY(-6px)}
-      }
-
-      /* Apply fade-up to results animation class */
+      @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+      @keyframes modalIn{from{opacity:0;transform:translate(-50%,-48%)}to{opacity:1;transform:translate(-50%,-50%)}}
+      @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+      @keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+      @keyframes slideInRight{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:translateX(0)}}
+      @keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+      @keyframes pulseGlow{0%,100%{box-shadow:0 0 8px currentColor}50%{box-shadow:0 0 18px currentColor}}
+      @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
       .up{animation:fadeUp .35s cubic-bezier(.16,1,.3,1) forwards;width:100%;}
-
-      /* Stagger children of .stagger */
       .stagger>*{animation:fadeUp .35s cubic-bezier(.16,1,.3,1) both;}
-      .stagger>*:nth-child(1){animation-delay:.04s}
-      .stagger>*:nth-child(2){animation-delay:.08s}
-      .stagger>*:nth-child(3){animation-delay:.12s}
-      .stagger>*:nth-child(4){animation-delay:.16s}
-      .stagger>*:nth-child(5){animation-delay:.20s}
-      .stagger>*:nth-child(6){animation-delay:.24s}
-      .stagger>*:nth-child(7){animation-delay:.28s}
-      .stagger>*:nth-child(8){animation-delay:.32s}
-      .stagger>*:nth-child(9){animation-delay:.36s}
-      .stagger>*:nth-child(10){animation-delay:.40s}
-      .stagger>*:nth-child(11){animation-delay:.44s}
-      .stagger>*:nth-child(12){animation-delay:.48s}
-
-      /* Cards hover lift */
-      .card{
-        transition:box-shadow .2s ease, transform .2s cubic-bezier(.16,1,.3,1);
-        will-change:transform;
-      }
-      .card:hover{
-        box-shadow:0 8px 32px rgba(37,99,168,.1);
-        transform:translateY(-1px);
-      }
-
-      /* Button press feedback — all buttons */
-      button{
-        transition:transform .15s cubic-bezier(.16,1,.3,1), box-shadow .15s ease, opacity .15s ease !important;
-        touch-action:manipulation;
-        -webkit-tap-highlight-color:transparent;
-      }
-      button:active{
-        transform:scale(.97) !important;
-        opacity:.92 !important;
-      }
-      button:hover:not(:disabled){
-        opacity:.95;
-      }
-      button:disabled{
-        cursor:not-allowed;
-        opacity:.5;
-      }
-
-      /* Input focus ring animation */
-      .f,.fg{
-        transition:border-color .2s ease, box-shadow .2s ease, background .2s ease !important;
-      }
-      .f:focus{
-        border-color:#2563a8 !important;
-        box-shadow:0 0 0 3px rgba(37,99,168,.1) !important;
-      }
-
-      /* Sidebar slide-in */
-      .sidebar-panel{
-        animation:slideInRight .3s cubic-bezier(.16,1,.3,1) forwards;
-      }
-
-      /* Semáforo pulse */
-      .semaforo-dot{
-        animation:pulseGlow .8s ease-in-out 3;
-      }
-
-      /* Symbol float on hero */
-      .hero-symbol{
-        animation:float 4s ease-in-out infinite;
-      }
-
-      /* Shimmer skeleton */
-      .shimmer{
-        background:linear-gradient(90deg,#f0ece8 25%,#e8e3de 50%,#f0ece8 75%);
-        background-size:400px 100%;
-        animation:shimmer 1.4s ease-in-out infinite;
-      }
-
-      /* Overlay fade */
-      .overlay-fade{
-        animation:fadeIn .2s ease forwards;
-      }
-
-      /* Reduced motion — respect user preference */
-      @media(prefers-reduced-motion:reduce){
-        *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
-      }
-
-      /* ══ MOBILE RESPONSIVE ══ */
+      .stagger>*:nth-child(1){animation-delay:.04s}.stagger>*:nth-child(2){animation-delay:.08s}.stagger>*:nth-child(3){animation-delay:.12s}.stagger>*:nth-child(4){animation-delay:.16s}.stagger>*:nth-child(5){animation-delay:.20s}.stagger>*:nth-child(6){animation-delay:.24s}.stagger>*:nth-child(7){animation-delay:.28s}.stagger>*:nth-child(8){animation-delay:.32s}.stagger>*:nth-child(9){animation-delay:.36s}.stagger>*:nth-child(10){animation-delay:.40s}.stagger>*:nth-child(11){animation-delay:.44s}.stagger>*:nth-child(12){animation-delay:.48s}
+      .card{transition:box-shadow .2s ease, transform .2s cubic-bezier(.16,1,.3,1);will-change:transform;}
+      .card:hover{box-shadow:0 8px 32px rgba(37,99,168,.1);transform:translateY(-1px);}
+      button{transition:transform .15s cubic-bezier(.16,1,.3,1), box-shadow .15s ease, opacity .15s ease !important;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+      button:active{transform:scale(.97) !important;opacity:.92 !important;}
+      button:hover:not(:disabled){opacity:.95;}
+      button:disabled{cursor:not-allowed;opacity:.5;}
+      .f,.fg{transition:border-color .2s ease, box-shadow .2s ease, background .2s ease !important;}
+      .f:focus{border-color:#2563a8 !important;box-shadow:0 0 0 3px rgba(37,99,168,.1) !important;}
+      .sidebar-panel{animation:slideInRight .3s cubic-bezier(.16,1,.3,1) forwards;}
+      .semaforo-dot{animation:pulseGlow .8s ease-in-out 3;}
+      .hero-symbol{animation:float 4s ease-in-out infinite;}
+      .shimmer{background:linear-gradient(90deg,#f0ece8 25%,#e8e3de 50%,#f0ece8 75%);background-size:400px 100%;animation:shimmer 1.4s ease-in-out infinite;}
+      .overlay-fade{animation:fadeIn .2s ease forwards;}
+      @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}}
       @media(max-width:640px){
-        /* Nav */
-        .mob-nav{padding:12px 16px !important;}
-        .mob-logo{height:22px !important;}
-        .mob-nav-btns{gap:6px !important;}
-        .mob-nav-btn{padding:5px 10px !important;font-size:10px !important;}
-        .mob-nav-pill{padding:5px 10px !important;font-size:10px !important;}
-
-        /* Hero content */
-        .mob-center{padding:10px 14px 20px !important;}
-        .mob-symbol{width:72px !important;height:72px !important;}
-        .mob-h2{font-size:26px !important;margin-bottom:6px !important;}
-        .mob-subtitle{font-size:13px !important;margin-bottom:14px !important;}
-
-        /* Hero form */
-        .mob-form{padding:18px 14px !important;border-radius:14px !important;}
-        .mob-form .fg{font-size:16px !important;padding:12px !important;}
-
-        /* Force ALL grids to single column on mobile */
-        .g2{grid-template-columns:1fr !important;}
-        .g3{grid-template-columns:1fr !important;}
-
-
-        /* Results page */
-        .mob-results-content{padding:12px 12px 100px !important;}
-        .mob-header-card{padding:14px 14px !important;border-radius:12px !important;}
-        .mob-header-grid{grid-template-columns:1fr 1fr !important;}
-        .card{padding:14px 14px !important;}
-        .sec-hdr{margin-bottom:10px !important;}
-
-        /* Charts — no overflow */
+        .mob-nav{padding:12px 16px !important;}.mob-logo{height:22px !important;}.mob-nav-btns{gap:6px !important;}.mob-nav-btn{padding:5px 10px !important;font-size:10px !important;}.mob-nav-pill{padding:5px 10px !important;font-size:10px !important;}
+        .mob-center{padding:10px 14px 20px !important;}.mob-symbol{width:72px !important;height:72px !important;}.mob-h2{font-size:26px !important;margin-bottom:6px !important;}.mob-subtitle{font-size:13px !important;margin-bottom:14px !important;}
+        .mob-form{padding:18px 14px !important;border-radius:14px !important;}.mob-form .fg{font-size:16px !important;padding:12px !important;}
+        .g2{grid-template-columns:1fr !important;}.g3{grid-template-columns:1fr !important;}
+        .mob-results-content{padding:12px 12px 100px !important;}.mob-header-card{padding:14px 14px !important;border-radius:12px !important;}.mob-header-grid{grid-template-columns:1fr 1fr !important;}.card{padding:14px 14px !important;}.sec-hdr{margin-bottom:10px !important;}
         canvas{max-width:100% !important;}
-
-        /* Tables and cards inside results */
         div[style*="display:"grid""]{max-width:100% !important;}
-
-        /* Prevent horizontal overflow globally */
-        body,html{overflow-x:hidden;}
-        img{max-width:100% !important;}
-
-        /* Parking calculator */
+        body,html{overflow-x:hidden;}img{max-width:100% !important;}
         div[style*="1fr auto"]{grid-template-columns:1fr !important;}
-
-        /* Sidebar */
         .mob-sidebar{width:100vw !important;max-width:100vw !important;}
-
-        /* Floating button */
         div[style*="position:"fixed""][style*="bottom:0"]{padding:10px 14px 16px !important;}
       }
     `}</style>
 
+    {/* ── TOAST: pago exitoso ── */}
+    {pagoExitoso&&(
+      <div style={{position:"fixed",top:20,left:"50%",transform:"translateX(-50%)",zIndex:200,
+        background:"#F0FDF4",border:"1.5px solid #22c55e",borderRadius:14,
+        padding:"14px 24px",boxShadow:"0 8px 32px rgba(0,0,0,.15)",
+        display:"flex",alignItems:"center",gap:10,animation:"fadeIn .3s ease"}}>
+        <div style={{width:10,height:10,borderRadius:"50%",background:"#22c55e",boxShadow:"0 0 8px #22c55e"}}/>
+        <span style={{fontSize:14,fontWeight:700,color:"#15803d"}}>¡Pago exitoso! Tus créditos ya están disponibles.</span>
+      </div>
+    )}
+
     {/* ════════════════════════════════════════════
-        LOADING — pantalla completa glassmorphism
+        LOADING
     ════════════════════════════════════════════ */}
     {loading&&(
       <div style={{position:"fixed",inset:0,zIndex:100,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",overflow:"hidden"}}>
-        {/* Mismo fondo que el hero */}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg, #0a1628 0%, #0f2240 40%, #0d2d3a 70%, #0a1e28 100%)"}}>
           <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.18}} xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -1246,21 +1079,9 @@ export default function Page(){
             </defs>
             <rect width="100%" height="100%" fill="url(#gl)"/>
             <rect width="100%" height="100%" fill="url(#gl2)"/>
-            <line x1="0" y1="38%" x2="100%" y2="35%" stroke="#5bb8d4" strokeWidth="1.5" opacity=".5"/>
-            <line x1="0" y1="62%" x2="100%" y2="65%" stroke="#5bb8d4" strokeWidth="1" opacity=".4"/>
-            <line x1="22%" y1="0" x2="18%" y2="100%" stroke="#5bb8d4" strokeWidth="1.5" opacity=".5"/>
-            <line x1="55%" y1="0" x2="52%" y2="100%" stroke="#5bb8d4" strokeWidth="1" opacity=".4"/>
-            <rect x="24%" y="20%" width="8%" height="12%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
-            <rect x="58%" y="42%" width="10%" height="14%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
           </svg>
-          <div style={{position:"absolute",top:"20%",left:"30%",width:500,height:500,background:"radial-gradient(circle, rgba(37,99,168,.2) 0%, transparent 70%)",transform:"translate(-50%,-50%)"}}/>
-          <div style={{position:"absolute",bottom:"20%",right:"20%",width:350,height:350,background:"radial-gradient(circle, rgba(20,120,140,.18) 0%, transparent 70%)"}}/>
         </div>
-
-        {/* Glassmorphism card */}
         <div style={{position:"relative",zIndex:2,width:"min(520px,90vw)",display:"flex",flexDirection:"column" as const,alignItems:"center",gap:32,padding:"44px 40px",background:"rgba(15,34,64,.55)",border:"1px solid rgba(94,168,240,.18)",borderRadius:24,backdropFilter:"blur(20px)",boxShadow:"0 8px 60px rgba(0,0,0,.5)"}}>
-
-          {/* Animated logo mark */}
           <div style={{position:"relative",width:64,height:64}}>
             <div style={{position:"absolute",inset:0,borderRadius:"50%",border:"1.5px solid rgba(94,168,240,.25)",animation:"orbit 3s linear infinite"}}/>
             <div style={{position:"absolute",inset:6,borderRadius:"50%",border:"1.5px solid rgba(94,168,240,.15)",animation:"orbit 5s linear infinite reverse"}}/>
@@ -1270,23 +1091,14 @@ export default function Page(){
               </svg>
             </div>
           </div>
-
-          {/* Step label */}
           <div style={{textAlign:"center" as const}}>
-            <div style={{fontSize:11,fontWeight:700,letterSpacing:".15em",color:"rgba(94,168,240,.6)",textTransform:"uppercase" as const,marginBottom:8}}>
-              Analizando terreno
-            </div>
-            <div style={{fontSize:18,fontWeight:600,color:"#fff",letterSpacing:"-.01em",minHeight:28,transition:"all .3s"}}>
-              {STEPS[step]}
-            </div>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:".15em",color:"rgba(94,168,240,.6)",textTransform:"uppercase" as const,marginBottom:8}}>Analizando terreno</div>
+            <div style={{fontSize:18,fontWeight:600,color:"#fff",letterSpacing:"-.01em",minHeight:28,transition:"all .3s"}}>{STEPS[step]}</div>
           </div>
-
-          {/* Progress bar */}
           <div style={{width:"100%",display:"flex",flexDirection:"column" as const,gap:10}}>
             <div style={{width:"100%",height:4,borderRadius:99,background:"rgba(255,255,255,.08)",overflow:"hidden"}}>
               <div style={{height:"100%",borderRadius:99,background:"linear-gradient(90deg,#2563a8,#5ea8f0)",width:`${((step+1)/STEPS.length)*100}%`,transition:"width .7s ease"}}/>
             </div>
-            {/* Step dots */}
             <div style={{display:"flex",justifyContent:"space-between",padding:"0 2px"}}>
               {STEPS.map((_,i)=>(
                 <div key={i} style={{display:"flex",flexDirection:"column" as const,alignItems:"center",gap:4}}>
@@ -1295,8 +1107,6 @@ export default function Page(){
               ))}
             </div>
           </div>
-
-          {/* Rotating tip */}
           <div style={{width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid rgba(94,168,240,.12)",borderRadius:14,padding:"18px 20px",minHeight:110,display:"flex",flexDirection:"column" as const,gap:8,transition:"all .4s"}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{width:6,height:6,borderRadius:"50%",background:"#5ea8f0",flexShrink:0}}/>
@@ -1304,66 +1114,48 @@ export default function Page(){
             </div>
             <p style={{fontSize:13,color:"rgba(255,255,255,.7)",lineHeight:1.7,margin:0}}>{TIPS[tipIdx].txt}</p>
           </div>
-
-          {/* Tip counter dots */}
           <div style={{display:"flex",gap:5}}>
             {TIPS.map((_,i)=>(
               <div key={i} style={{width:i===tipIdx?18:5,height:5,borderRadius:99,background:i===tipIdx?"#5ea8f0":"rgba(255,255,255,.12)",transition:"all .4s"}}/>
             ))}
           </div>
-
         </div>
       </div>
     )}
 
     {/* ════════════════════════════════════════════
-        HERO — full viewport glassmorphism landing
-        Only shown when there's no result yet
+        HERO
     ════════════════════════════════════════════ */}
     {!res&&!loading&&(
       <div style={{position:"relative",minHeight:"100vh",overflow:"hidden",display:"flex",flexDirection:"column" as const}}>
-        {/* MAP BACKGROUND — SVG grid simulating urban map */}
         <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg, #0a1628 0%, #0f2240 40%, #0d2d3a 70%, #0a1e28 100%)"}}>
-          {/* Grid lines */}
           <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.18}} xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-                <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#4a9ebb" strokeWidth=".6"/>
-              </pattern>
-              <pattern id="grid2" width="300" height="300" patternUnits="userSpaceOnUse">
-                <path d="M 300 0 L 0 0 0 300" fill="none" stroke="#4a9ebb" strokeWidth="1.2"/>
-              </pattern>
+              <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse"><path d="M 60 0 L 0 0 0 60" fill="none" stroke="#4a9ebb" strokeWidth=".6"/></pattern>
+              <pattern id="grid2" width="300" height="300" patternUnits="userSpaceOnUse"><path d="M 300 0 L 0 0 0 300" fill="none" stroke="#4a9ebb" strokeWidth="1.2"/></pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#grid)"/>
             <rect width="100%" height="100%" fill="url(#grid2)"/>
-            {/* Simulated streets */}
             <line x1="0" y1="38%" x2="100%" y2="35%" stroke="#5bb8d4" strokeWidth="1.5" opacity=".5"/>
             <line x1="0" y1="62%" x2="100%" y2="65%" stroke="#5bb8d4" strokeWidth="1" opacity=".4"/>
             <line x1="0" y1="78%" x2="100%" y2="80%" stroke="#5bb8d4" strokeWidth=".8" opacity=".3"/>
             <line x1="22%" y1="0" x2="18%" y2="100%" stroke="#5bb8d4" strokeWidth="1.5" opacity=".5"/>
             <line x1="55%" y1="0" x2="52%" y2="100%" stroke="#5bb8d4" strokeWidth="1" opacity=".4"/>
             <line x1="78%" y1="0" x2="80%" y2="100%" stroke="#5bb8d4" strokeWidth=".8" opacity=".3"/>
-            {/* City blocks */}
             <rect x="24%" y="20%" width="8%" height="12%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
             <rect x="35%" y="25%" width="5%" height="8%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".25"/>
             <rect x="58%" y="42%" width="10%" height="14%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
             <rect x="15%" y="55%" width="6%" height="9%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".25"/>
             <rect x="70%" y="20%" width="7%" height="10%" fill="none" stroke="#2563a8" strokeWidth=".5" opacity=".3"/>
           </svg>
-          {/* Glow blobs */}
           <div style={{position:"absolute",top:"20%",left:"30%",width:400,height:400,background:"radial-gradient(circle, rgba(37,99,168,.25) 0%, transparent 70%)",transform:"translate(-50%,-50%)"}}/>
           <div style={{position:"absolute",bottom:"25%",right:"25%",width:300,height:300,background:"radial-gradient(circle, rgba(20,120,140,.2) 0%, transparent 70%)"}}/>
         </div>
-
-
-
-        {/* NAV over map */}
         <nav style={{position:"relative",zIndex:10,padding:"18px 24px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <button onClick={()=>{setRes(null);}} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"inline-flex",alignItems:"center",flexShrink:0}}>
-          <img src="/LOGO LETRAS WHITE.png" alt="unearth" className="mob-logo" style={{height:28,width:"auto",display:"block"}}/>
-        </button>
+            <img src="/LOGO LETRAS WHITE.png" alt="unearth" className="mob-logo" style={{height:28,width:"auto",display:"block"}}/>
+          </button>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-
             {!userSession&&(
               <button className="mob-nav-btn" onClick={()=>setShowLoginModal(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.1)",backdropFilter:"blur(10px)",border:"1px solid rgba(255,255,255,.2)",borderRadius:100,padding:"7px 16px",cursor:"pointer",color:"#fff",fontSize:12,fontWeight:600,letterSpacing:".02em"}}>
                 Iniciar sesión
@@ -1379,32 +1171,17 @@ export default function Page(){
             )}
           </div>
         </nav>
-
-        {/* Center content */}
         <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10}}>
-          {/* Logo real grande */}
           <div style={{marginBottom:4,position:"relative"}}>
             <img src="/LOGO SIMBOLO WHITE.png" alt="" className="mob-symbol hero-symbol" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
           </div>
-
           <h2 className="mob-h2" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(26px,3.5vw,48px)",lineHeight:1.1,color:"#fff",marginBottom:10,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
             Unearth your next<br/><em style={{color:"#5ea8f0",fontStyle:"italic"}}>development.</em>
           </h2>
           <p className="mob-subtitle" style={{fontSize:14,color:"rgba(200,220,240,.7)",lineHeight:1.6,maxWidth:400,margin:"0 auto 20px",textAlign:"center" as const}}>
             Dirección, metros y precio — análisis de zonificación, mercado y financiero en segundos.
           </p>
-
-          {/* GLASSMORPHISM FORM */}
-          <div className="mob-form" style={{
-            width:"100%",maxWidth:680,
-            background:"rgba(255,255,255,.07)",
-            backdropFilter:"blur(24px)",
-            WebkitBackdropFilter:"blur(24px)",
-            border:"1px solid rgba(255,255,255,.15)",
-            borderRadius:20,
-            padding:"28px 32px",
-            boxShadow:"0 8px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.1)",
-          }}>
+          <div className="mob-form" style={{width:"100%",maxWidth:680,background:"rgba(255,255,255,.07)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,.15)",borderRadius:20,padding:"28px 32px",boxShadow:"0 8px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.1)"}}>
             <div className="g3" style={{marginBottom:14}}>
               <div style={{gridColumn:"1/-1"}}>
                 <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>Dirección del terreno</label>
@@ -1455,15 +1232,7 @@ export default function Page(){
               </div>
             </div>
             {err&&<div style={{background:"rgba(239,68,68,.15)",border:"1px solid rgba(239,68,68,.3)",borderRadius:10,padding:"10px 14px",color:"#fca5a5",fontSize:13,marginBottom:12}}>{err}</div>}
-            <button onClick={run} disabled={loading} style={{
-              width:"100%",
-              background:loading?"rgba(255,255,255,.1)":"linear-gradient(135deg, #1a4d8a 0%, #2563a8 50%, #1a7a8a 100%)",
-              border:"none",borderRadius:12,padding:"15px 0",
-              color:"#fff",fontSize:14,fontWeight:700,cursor:loading?"not-allowed":"pointer",
-              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-              boxShadow:loading?"none":"0 4px 20px rgba(37,99,168,.5)",
-              letterSpacing:".02em",transition:"all .25s cubic-bezier(.16,1,.3,1)",
-            }}>
+            <button onClick={run} disabled={loading} style={{width:"100%",background:loading?"rgba(255,255,255,.1)":"linear-gradient(135deg, #1a4d8a 0%, #2563a8 50%, #1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 0",color:"#fff",fontSize:14,fontWeight:700,cursor:loading?"not-allowed":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10,boxShadow:loading?"none":"0 4px 20px rgba(37,99,168,.5)",letterSpacing:".02em",transition:"all .25s cubic-bezier(.16,1,.3,1)"}}>
               {loading
                 ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>{STEPS[step]}</>
                 :"Generar reporte de factibilidad →"}
@@ -1472,17 +1241,8 @@ export default function Page(){
               {STEPS.map((_,i)=><div key={i} style={{width:7,height:7,borderRadius:"50%",background:i<=step?"#5ea8f0":"rgba(255,255,255,.2)",transform:i===step?"scale(1.6)":"scale(1)",boxShadow:i===step?"0 0 10px #5ea8f0":"none",transition:"all .35s cubic-bezier(.16,1,.3,1)"}}/>)}
             </div>}
           </div>
-
-          {/* Analysis type description — outside the form */}
-          <div style={{width:"100%",maxWidth:680,marginTop:10,
-            background:"rgba(255,255,255,.05)",
-            backdropFilter:"blur(12px)",
-            border:"1px solid rgba(255,255,255,.1)",
-            borderRadius:14,
-            padding:"14px 20px",
-            display:"flex",alignItems:"flex-start",gap:14}}>
-            <div style={{width:32,height:32,borderRadius:8,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,
-              background:tipo==="lineamientos"?"rgba(94,168,240,.15)":tipo==="mercado"?"rgba(217,119,6,.15)":"rgba(34,197,94,.15)",transition:"background .25s ease"}}>
+          <div style={{width:"100%",maxWidth:680,marginTop:10,background:"rgba(255,255,255,.05)",backdropFilter:"blur(12px)",border:"1px solid rgba(255,255,255,.1)",borderRadius:14,padding:"14px 20px",display:"flex",alignItems:"flex-start",gap:14}}>
+            <div style={{width:32,height:32,borderRadius:8,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,background:tipo==="lineamientos"?"rgba(94,168,240,.15)":tipo==="mercado"?"rgba(217,119,6,.15)":"rgba(34,197,94,.15)",transition:"background .25s ease"}}>
               {tipo==="lineamientos"?"🗺️":tipo==="mercado"?"📊":"📐"}
             </div>
             <div style={{flex:1}}>
@@ -1490,8 +1250,7 @@ export default function Page(){
                 <span style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,.85)"}}>
                   {tipo==="lineamientos"?"Lineamientos urbanísticos":tipo==="mercado"?"Estudio de mercado":"Análisis completo"}
                 </span>
-                <span style={{fontSize:11,fontWeight:700,flexShrink:0,marginLeft:12,
-                  color:tipo==="lineamientos"?"#5ea8f0":tipo==="mercado"?"#d97706":"#22c55e"}}>
+                <span style={{fontSize:11,fontWeight:700,flexShrink:0,marginLeft:12,color:tipo==="lineamientos"?"#5ea8f0":tipo==="mercado"?"#d97706":"#22c55e"}}>
                   {tipo==="lineamientos"?"1 crédito":tipo==="mercado"?"2 créditos":"3 créditos"}
                 </span>
               </div>
@@ -1502,17 +1261,14 @@ export default function Page(){
               </span>
             </div>
           </div>
-
         </div>
       </div>
     )}
 
     {/* ══════════════════════════════════════════
-        RESULTS PAGE — shown when there's a result
-        Keeps its own nav + white bg layout
+        RESULTS PAGE
     ══════════════════════════════════════════ */}
     {(res||loading)&&(<div style={{position:"relative",minHeight:"100vh",background:"#F8F5F0",width:"100%"}}>
-      {/* Fondo grid claro */}
       <div style={{position:"fixed",inset:0,zIndex:0,pointerEvents:"none",overflow:"hidden"}}>
         <svg style={{position:"absolute",inset:0,width:"100%",height:"100%"}} xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -1521,677 +1277,535 @@ export default function Page(){
           </defs>
           <rect width="100%" height="100%" fill="url(#rgl)"/>
           <rect width="100%" height="100%" fill="url(#rgl2)"/>
-          <line x1="0" y1="38%" x2="100%" y2="35%" stroke="rgba(91,184,212,.15)" strokeWidth="1.5"/>
-          <line x1="0" y1="62%" x2="100%" y2="65%" stroke="rgba(91,184,212,.1)" strokeWidth="1"/>
-          <line x1="0" y1="78%" x2="100%" y2="80%" stroke="rgba(91,184,212,.08)" strokeWidth=".8"/>
-          <line x1="22%" y1="0" x2="18%" y2="100%" stroke="rgba(91,184,212,.15)" strokeWidth="1.5"/>
-          <line x1="55%" y1="0" x2="52%" y2="100%" stroke="rgba(91,184,212,.1)" strokeWidth="1"/>
-          <line x1="78%" y1="0" x2="80%" y2="100%" stroke="rgba(91,184,212,.08)" strokeWidth=".8"/>
-          <rect x="24%" y="20%" width="8%" height="12%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
-          <rect x="35%" y="25%" width="5%" height="8%" fill="none" stroke="rgba(37,99,168,.05)" strokeWidth=".5"/>
-          <rect x="58%" y="42%" width="10%" height="14%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
-          <rect x="15%" y="55%" width="6%" height="9%" fill="none" stroke="rgba(37,99,168,.05)" strokeWidth=".5"/>
-          <rect x="70%" y="20%" width="7%" height="10%" fill="none" stroke="rgba(37,99,168,.07)" strokeWidth=".5"/>
         </svg>
-        <div style={{position:"absolute",top:"15%",left:"28%",width:600,height:600,background:"radial-gradient(circle, rgba(37,99,168,.04) 0%, transparent 70%)",transform:"translate(-50%,-50%)"}}/>
-        <div style={{position:"absolute",bottom:"20%",right:"20%",width:500,height:500,background:"radial-gradient(circle, rgba(91,184,212,.05) 0%, transparent 70%)"}}/>
       </div>
-    {/* NAV — compact when showing results */}
-    <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 20px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");setFrente("");setFondo("");}} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"inline-flex",alignItems:"center",flexShrink:0}}>
-        <img src="/LOGO LETRAS BLACK.png" alt="unearth" style={{height:24,width:"auto",display:"block"}}/>
-      </button>
-      {userSession&&(
-        <button onClick={()=>setSidebarOpen(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(37,99,168,.08)",border:"1px solid #EAE5DF",borderRadius:100,padding:"5px 12px",cursor:"pointer",color:"#2563a8",fontSize:11,fontWeight:600}}>
-          <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#2563a8,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>
-            {(userSession.user?.email||"U")[0].toUpperCase()}
-          </div>
-          {creditos!==null&&<span style={{fontWeight:700}}>{creditos} cr.</span>}
+      <header style={{position:"sticky",top:0,zIndex:30,background:"rgba(245,242,238,.95)",backdropFilter:"blur(10px)",borderBottom:"1px solid #EAE5DF",padding:"0 20px",height:48,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <button onClick={()=>{setRes(null);setDir("");setM2("");setPx("");setProd("");setFrente("");setFondo("");}} style={{background:"none",border:"none",cursor:"pointer",padding:0,display:"inline-flex",alignItems:"center",flexShrink:0}}>
+          <img src="/LOGO LETRAS BLACK.png" alt="unearth" style={{height:24,width:"auto",display:"block"}}/>
         </button>
-      )}
-    </header>
+        {userSession&&(
+          <button onClick={()=>setSidebarOpen(true)} style={{display:"flex",alignItems:"center",gap:7,background:"rgba(37,99,168,.08)",border:"1px solid #EAE5DF",borderRadius:100,padding:"5px 12px",cursor:"pointer",color:"#2563a8",fontSize:11,fontWeight:600}}>
+            <div style={{width:20,height:20,borderRadius:"50%",background:"linear-gradient(135deg,#2563a8,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:"#fff",flexShrink:0}}>
+              {(userSession.user?.email||"U")[0].toUpperCase()}
+            </div>
+            {creditos!==null&&<span style={{fontWeight:700}}>{creditos} cr.</span>}
+          </button>
+        )}
+      </header>
 
+      <div className="mob-results-content" style={{width:"100%",padding:"24px 28px 100px",boxSizing:"border-box" as const,position:"relative",zIndex:1}}>
+        <div id="results-container" style={{paddingBottom:8,width:"100%",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
 
-
-    <div className="mob-results-content" style={{width:"100%",padding:"24px 28px 100px",boxSizing:"border-box" as const,position:"relative",zIndex:1}}>
-
-      {/* ══ ERROR USO DE SUELO HU ══ */}
-      <div id="results-container" style={{paddingBottom:8,width:"100%",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
-
-      {/* ── MEMBRETE PDF — oculto en pantalla, visible al exportar ── */}
-      <div id="pdf-membrete" style={{display:"none",background:"#fff",borderBottom:"2px solid #EAE5DF",padding:"20px 28px 18px",marginBottom:24,alignItems:"center",justifyContent:"space-between",gap:16}}>
-        <img src="/LOGO LETRAS BLACK.png" alt="unearth" style={{height:30,width:"auto",flexShrink:0}}/>
-        <div style={{flex:1,paddingLeft:20,borderLeft:"1px solid #EAE5DF"}}>
-          <div style={{fontSize:14,fontWeight:700,color:"#1a1510",lineHeight:1.3}}>{res?.ubicacion?.direccion}</div>
-          <div style={{fontSize:11,color:"#7a6f64",marginTop:3}}>
-            {res?.tipo_analisis==="lineamientos"?"Lineamientos Urbanísticos":res?.tipo_analisis==="mercado"?"Estudio de Mercado":"Análisis Completo"}
-            {res?.ubicacion?.distrito&&<> · {res.ubicacion.distrito}{res?.ubicacion?.delegacion&&`, ${res.ubicacion.delegacion}`}</>}
+          {/* MEMBRETE PDF */}
+          <div id="pdf-membrete" style={{display:"none",background:"#fff",borderBottom:"2px solid #EAE5DF",padding:"20px 28px 18px",marginBottom:24,alignItems:"center",justifyContent:"space-between",gap:16}}>
+            <img src="/LOGO LETRAS BLACK.png" alt="unearth" style={{height:30,width:"auto",flexShrink:0}}/>
+            <div style={{flex:1,paddingLeft:20,borderLeft:"1px solid #EAE5DF"}}>
+              <div style={{fontSize:14,fontWeight:700,color:"#1a1510",lineHeight:1.3}}>{res?.ubicacion?.direccion}</div>
+              <div style={{fontSize:11,color:"#7a6f64",marginTop:3}}>
+                {res?.tipo_analisis==="lineamientos"?"Lineamientos Urbanísticos":res?.tipo_analisis==="mercado"?"Estudio de Mercado":"Análisis Completo"}
+                {res?.ubicacion?.distrito&&<> · {res.ubicacion.distrito}{res?.ubicacion?.delegacion&&`, ${res.ubicacion.delegacion}`}</>}
+              </div>
+            </div>
+            <div style={{textAlign:"right" as const,flexShrink:0}}>
+              <div style={{fontSize:12,fontWeight:600,color:"#1a1510"}}>{userSession?.user?.user_metadata?.full_name||userSession?.user?.email?.split("@")[0]||"—"}</div>
+              <div style={{fontSize:11,color:"#a09888",marginTop:2}}>{new Date().toLocaleDateString("es-MX",{day:"2-digit",month:"long",year:"numeric"})}</div>
+            </div>
           </div>
-        </div>
-        <div style={{textAlign:"right" as const,flexShrink:0}}>
-          <div style={{fontSize:12,fontWeight:600,color:"#1a1510"}}>{userSession?.user?.user_metadata?.full_name||userSession?.user?.email?.split("@")[0]||"—"}</div>
-          <div style={{fontSize:11,color:"#a09888",marginTop:2}}>{new Date().toLocaleDateString("es-MX",{day:"2-digit",month:"long",year:"numeric"})}</div>
-        </div>
-      </div>
-      {res&&!loading&&res.tipo_analisis==="error_uso_suelo"&&(
-        <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-          <Header/>
-          <div style={{background:"#FFF7ED",border:"2px solid #FED7AA",borderRadius:14,padding:"24px 28px"}}>
-            <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-              <div style={{fontSize:24,lineHeight:"1",flexShrink:0}}>⚠️</div>
-              <div>
-                <div style={{fontSize:15,fontWeight:700,color:"#c2410c",marginBottom:8}}>
-                  Producto no compatible con zona HU (Habitacional Unifamiliar)
-                </div>
-                <p style={{fontSize:14,color:"#7c2d12",lineHeight:1.7,marginBottom:16}}>
-                  La zona <strong>HU</strong> solo permite <strong>una vivienda por lote</strong>. No es compatible con departamentos ni multifamiliar vertical.
-                </p>
-                <div style={{background:"#FEF3C7",borderRadius:10,padding:"14px 18px",marginBottom:12}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#b45309",marginBottom:8}}>¿Qué SÍ se puede hacer en HU?</div>
-                  <div style={{fontSize:13,color:"#78350f",lineHeight:1.9}}>
-                    ✓ 1 vivienda unifamiliar<br/>
-                    ✓ Duplex o casa con depto de servicio (condicionado)<br/>
-                    ✓ Multifamiliar horizontal / townhouses — <strong>requiere verificación directa con Desarrollo Urbano Sostenible de Monterrey</strong>
-                  </div>
-                </div>
-                <div style={{background:"#DBEAFE",borderRadius:10,padding:"14px 18px"}}>
-                  <div style={{fontSize:12,fontWeight:700,color:"#1d4ed8",marginBottom:6}}>Para departamentos busca zonas:</div>
-                  <div style={{fontSize:13,color:"#1e3a5f"}}>
-                    <strong>HM</strong> · <strong>HML</strong> · <strong>HMM</strong> · <strong>HMI</strong>
+
+          {/* ERROR USO DE SUELO */}
+          {res&&!loading&&res.tipo_analisis==="error_uso_suelo"&&(
+            <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
+              <Header/>
+              <div style={{background:"#FFF7ED",border:"2px solid #FED7AA",borderRadius:14,padding:"24px 28px"}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+                  <div style={{fontSize:24,lineHeight:"1",flexShrink:0}}>⚠️</div>
+                  <div>
+                    <div style={{fontSize:15,fontWeight:700,color:"#c2410c",marginBottom:8}}>Producto no compatible con zona HU (Habitacional Unifamiliar)</div>
+                    <p style={{fontSize:14,color:"#7c2d12",lineHeight:1.7,marginBottom:16}}>La zona <strong>HU</strong> solo permite <strong>una vivienda por lote</strong>. No es compatible con departamentos ni multifamiliar vertical.</p>
+                    <div style={{background:"#FEF3C7",borderRadius:10,padding:"14px 18px",marginBottom:12}}>
+                      <div style={{fontSize:12,fontWeight:700,color:"#b45309",marginBottom:8}}>¿Qué SÍ se puede hacer en HU?</div>
+                      <div style={{fontSize:13,color:"#78350f",lineHeight:1.9}}>✓ 1 vivienda unifamiliar<br/>✓ Duplex o casa con depto de servicio (condicionado)<br/>✓ Multifamiliar horizontal / townhouses — <strong>requiere verificación directa con Desarrollo Urbano Sostenible de Monterrey</strong></div>
+                    </div>
+                    <div style={{background:"#DBEAFE",borderRadius:10,padding:"14px 18px"}}>
+                      <div style={{fontSize:12,fontWeight:700,color:"#1d4ed8",marginBottom:6}}>Para departamentos busca zonas:</div>
+                      <div style={{fontSize:13,color:"#1e3a5f"}}><strong>HM</strong> · <strong>HML</strong> · <strong>HMM</strong> · <strong>HMI</strong></div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-          {res.lineamientos&&<><div className="sec-hdr" style={{borderColor:BLUE}}><div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos del terreno (solo referencia)</div></div><LineamientosBlock/></>}
-        </div>
-      )}
-
-      {/* ══ LINEAMIENTOS ══ */}
-      {res&&!loading&&res.tipo_analisis==="lineamientos"&&(
-        <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-          <Header/>
-          <LineamientosBlock/>
-          
-          {/* ── BOTÓN NUEVO ANÁLISIS ── */}
-          <button onClick={()=>setRes(null)} style={{
-            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-            background:"transparent",border:"1.5px solid #2563a8",
-            borderRadius:12,padding:"13px 28px",width:"100%",
-            color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",
-            letterSpacing:".02em",marginTop:4,
-          }}>
-            ← Analizar con otro tipo de análisis
-          </button>
-
-          {/* ── BOTÓN PDF ── */}
-          <button onClick={generarPDF} disabled={pdfLoading} style={{
-            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-            background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",
-            border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",
-            color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,
-            cursor:pdfLoading?"not-allowed":"pointer",
-            boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8,
-          }}>
-            {pdfLoading
-              ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>
-              :<>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/>
-                  <polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Exportar Reporte PDF
-                <span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span>
-              </>
-            }
-          </button>
-        </div>
-      )}
-
-      {/* ══ MERCADO ══ */}
-      {res&&!loading&&res.tipo_analisis==="mercado"&&(
-        <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-          <Header/>
-          <MercadoChartsBlock/>
-          <MercadoComercialBlock/>
-          <div className="sec-hdr" style={{borderColor:BLUE,marginTop:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos y Giros Permitidos</div>
-          </div>
-          <LineamientosBlock/>
-          
-          {/* ── BOTÓN NUEVO ANÁLISIS ── */}
-          <button onClick={()=>setRes(null)} style={{
-            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-            background:"transparent",border:"1.5px solid #2563a8",
-            borderRadius:12,padding:"13px 28px",width:"100%",
-            color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",
-            letterSpacing:".02em",marginTop:4,
-          }}>
-            ← Analizar con otro tipo de análisis
-          </button>
-
-          {/* ── BOTÓN PDF ── */}
-          <button onClick={generarPDF} disabled={pdfLoading} style={{
-            display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-            background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",
-            border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",
-            color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,
-            cursor:pdfLoading?"not-allowed":"pointer",
-            boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8,
-          }}>
-            {pdfLoading
-              ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>
-              :<>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/>
-                  <polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                Exportar Reporte PDF
-                <span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span>
-              </>
-            }
-          </button>
-        </div>
-      )}
-
-      {/* ══ COMPLETO ══ */}
-      {res&&!loading&&res.tipo_analisis==="completo"&&(
-        <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-          <Header/>
-
-          {/* Resumen */}
-          {res.analisis?.resumen_ejecutivo&&(
-            <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
-              <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:8}}>Resumen Ejecutivo</div>
-              <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f"}}>{res.analisis.resumen_ejecutivo}</p>
+              {res.lineamientos&&<><div className="sec-hdr" style={{borderColor:BLUE}}><div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos del terreno (solo referencia)</div></div><LineamientosBlock/></>}
             </div>
           )}
 
-          {/* SECCIÓN 1 */}
-          <div className="sec-hdr" style={{borderColor:BLUE}}>
-            <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>1 · Lineamientos Urbanísticos y Giros</div>
-          </div>
-          <LineamientosBlock/>
+          {/* LINEAMIENTOS */}
+          {res&&!loading&&res.tipo_analisis==="lineamientos"&&(
+            <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
+              <Header/>
+              <LineamientosBlock/>
+              <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
+                ← Analizar con otro tipo de análisis
+              </button>
+              <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8}}>
+                {pdfLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>:<><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar Reporte PDF<span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span></>}
+              </button>
+            </div>
+          )}
 
-          {/* Retos constructivos — si los hay */}
-          {res.analisis?.viabilidad_tecnica?.retos_constructivos?.length>0&&(
-            <div className="card">
-              <div className="lbl" style={{marginBottom:10}}>Retos constructivos</div>
-              {res.analisis.viabilidad_tecnica.retos_constructivos.map((r:string,i:number)=>(
-                <div key={i} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #F0EBE5",fontSize:13,color:"#3a3228",lineHeight:1.4}}>
-                  <span style={{color:"#f97316",fontWeight:700,flexShrink:0}}>·</span>{r}
+          {/* MERCADO */}
+          {res&&!loading&&res.tipo_analisis==="mercado"&&(
+            <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
+              <Header/>
+              <MercadoChartsBlock/>
+              <MercadoComercialBlock/>
+              <div className="sec-hdr" style={{borderColor:BLUE,marginTop:8}}>
+                <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos y Giros Permitidos</div>
+              </div>
+              <LineamientosBlock/>
+              <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
+                ← Analizar con otro tipo de análisis
+              </button>
+              <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8}}>
+                {pdfLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>:<><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar Reporte PDF<span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span></>}
+              </button>
+            </div>
+          )}
+
+          {/* COMPLETO */}
+          {res&&!loading&&res.tipo_analisis==="completo"&&(
+            <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
+              <Header/>
+              {res.analisis?.resumen_ejecutivo&&(
+                <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:8}}>Resumen Ejecutivo</div>
+                  <p style={{fontSize:14,lineHeight:1.75,color:"#1e3a5f"}}>{res.analisis.resumen_ejecutivo}</p>
+                </div>
+              )}
+              <div className="sec-hdr" style={{borderColor:BLUE}}>
+                <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>1 · Lineamientos Urbanísticos y Giros</div>
+              </div>
+              <LineamientosBlock/>
+              {res.analisis?.viabilidad_tecnica?.retos_constructivos?.length>0&&(
+                <div className="card">
+                  <div className="lbl" style={{marginBottom:10}}>Retos constructivos</div>
+                  {res.analisis.viabilidad_tecnica.retos_constructivos.map((r:string,i:number)=>(
+                    <div key={i} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #F0EBE5",fontSize:13,color:"#3a3228",lineHeight:1.4}}>
+                      <span style={{color:"#f97316",fontWeight:700,flexShrink:0}}>·</span>{r}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {res.analisis?.estacionamiento&&(
+                <div style={{background:"#F8F5F0",border:"1px solid #EAE5DF",borderRadius:14,padding:"20px 24px"}}>
+                  <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>Requerimiento de Estacionamiento — PDU Monterrey</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:12}}>
+                    {[
+                      {l:"Cajones requeridos",v:`${res.analisis.estacionamiento.cajones_requeridos} cajones`},
+                      {l:"Área requerida",v:`${$(res.analisis.estacionamiento.area_requerida_m2,"n")} m²`},
+                      {l:"Área disponible",v:`${$(res.analisis.estacionamiento.area_disponible_estimada_m2,"n")} m²`},
+                      {l:"Viabilidad",v:res.analisis.estacionamiento.viable?"VIABLE":"RESTRICCIÓN CRÍTICA",col:res.analisis.estacionamiento.viable?"#15803d":"#dc2626"},
+                    ].map(k=>(
+                      <div key={k.l}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
+                        <div style={{fontSize:15,fontWeight:700,color:(k as any).col||"#1a1510"}}>{k.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{fontSize:12,color:"#7a6f64",lineHeight:1.6}}><strong>Cálculo:</strong> {res.analisis.estacionamiento.calculo}</div>
+                  {res.analisis.estacionamiento.notas&&<div style={{fontSize:12,color:"#7a6f64",marginTop:6,lineHeight:1.6}}><strong>Notas:</strong> {res.analisis.estacionamiento.notas}</div>}
+                </div>
+              )}
+              <div className="sec-hdr" style={{borderColor:AMBER,marginTop:8}}>
+                <div style={{fontSize:11,fontWeight:700,color:AMBER,letterSpacing:".08em",textTransform:"uppercase" as const}}>2 · Estudio de Mercado</div>
+              </div>
+              <MercadoChartsBlock/>
+              <MercadoComercialBlock/>
+              {res.analisis?.entorno_y_urbanismo&&(
+                <div className="card">
+                  <div className="lbl" style={{marginBottom:10}}>Entorno y Urbanismo</div>
+                  <p style={{fontSize:14,lineHeight:1.7,color:"#3a3228",marginBottom:8}}>{res.analisis.entorno_y_urbanismo.descripcion_zona}</p>
+                  {res.analisis.entorno_y_urbanismo.conectividad&&<p style={{fontSize:13,color:"#7a6f64",lineHeight:1.6,marginBottom:8}}>{res.analisis.entorno_y_urbanismo.conectividad}</p>}
+                  {res.analisis.entorno_y_urbanismo.servicios_cercanos?.length>0&&(
+                    <div style={{marginTop:8}}>{res.analisis.entorno_y_urbanismo.servicios_cercanos.map((s:string,i:number)=>(
+                      <span key={i} style={{background:"#EEE9E3",borderRadius:100,padding:"3px 10px",fontSize:11,fontWeight:500,color:"#5a4f44",margin:"3px 3px 0 0",display:"inline-block"}}>{s}</span>
+                    ))}</div>
+                  )}
+                </div>
+              )}
+              <div className="sec-hdr" style={{borderColor:GREEN,marginTop:8}}>
+                <div style={{fontSize:11,fontWeight:700,color:GREEN,letterSpacing:".08em",textTransform:"uppercase" as const}}>3 · Análisis Financiero</div>
+              </div>
+              {finF&&(
+                <div className="card">
+                  <div className="lbl" style={{marginBottom:14}}>Desglose financiero completo</div>
+                  {finF.calculo_ingresos&&(
+                    <div style={{background:"#EFF6FF",borderRadius:10,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#1e3a5f",lineHeight:1.6}}>
+                      <strong>Cálculo de ingresos:</strong> {finF.calculo_ingresos}
+                    </div>
+                  )}
+                  <div className="stagger" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12}}>
+                    {[
+                      {l:"Precio terreno",v:$(finF.precio_terreno)},
+                      {l:"Costo construcción",v:$(finF.costo_construccion_total)},
+                      {l:"Estacionamiento",v:`${$(finF.costo_estacionamiento||0)}${finF.cajones_por_vivienda_pdu?` (${finF.cajones_requeridos||0} caj.)`:""}`},
+                      {l:"Indirectos",v:`${finF.gastos_indirectos_pct||0}% → ${$(finF.gastos_indirectos||0)}`},
+                      {l:"Comercialización",v:`${finF.comercializacion_pct||0}% → ${$(finF.comercializacion||0)}`},
+                      {l:"Contingencias",v:`${finF.contingencias_pct||0}% → ${$(finF.contingencias||0)}`},
+                      {l:"Costo total",v:$(finF.costo_total_proyecto),b:true},
+                      {l:"Ingreso estimado",v:$(finF.ingreso_total_estimado),b:true},
+                      {l:"Utilidad bruta",v:$(finF.utilidad_bruta),col:finF.utilidad_bruta>=0?GREEN:"#dc2626",b:true},
+                      {l:"Margen bruto",v:pct(finF.margen_bruto_pct),col:finF.margen_bruto_pct>=15?GREEN:finF.margen_bruto_pct>=8?AMBER:"#dc2626",b:true},
+                      {l:"ROI",v:pct(finF.roi_pct),col:finF.roi_pct>=20?GREEN:finF.roi_pct>=10?AMBER:"#dc2626",b:true},
+                      {l:"TIR estimada",v:pct(finF.tir_estimada_pct),col:finF.tir_estimada_pct>=18?GREEN:finF.tir_estimada_pct>=10?AMBER:"#dc2626",b:true},
+                      {l:"Unidades reales",v:`${finF.unidades_reales||unidadesMax} und.`},
+                      {l:"M² / unidad",v:finF.m2_promedio_unidad?`${finF.m2_promedio_unidad} m²`:"—"},
+                      {l:"Precio/unidad",v:$(finF.precio_venta_por_unidad)},
+                      {l:"Plazo",v:`${finF.plazo_meses} meses`},
+                    ].map(k=>(
+                      <div key={k.l} style={{background:"#F5F2EE",borderRadius:10,padding:"13px 15px"}}>
+                        <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
+                        <div style={{fontSize:(k as any).b?17:14,fontWeight:700,color:(k as any).col||"#1a1510"}}>{k.v||"—"}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(redFlagsMerged.length>0||res.analisis?.fortalezas?.length>0)&&(
+                <div className="g2">
+                  {redFlagsMerged.length>0&&(
+                    <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:14,padding:"20px 24px"}}>
+                      <div className="lbl" style={{color:"#c2410c",marginBottom:10}}>Red Flags</div>
+                      {redFlagsMerged.map((f:string,i:number)=>(
+                        <div key={i} style={{display:"flex",gap:8,marginTop:9,fontSize:13,color:"#7c2d12",lineHeight:1.5,alignItems:"flex-start"}}>
+                          <span style={{color:"#f97316",fontWeight:800,flexShrink:0}}>!</span>{f}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {res.analisis?.fortalezas?.length>0&&(
+                    <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:14,padding:"20px 24px"}}>
+                      <div className="lbl" style={{color:GREEN,marginBottom:10}}>Fortalezas</div>
+                      {res.analisis.fortalezas.map((f:string,i:number)=>(
+                        <div key={i} style={{display:"flex",gap:8,marginTop:9,fontSize:13,color:"#14532d",lineHeight:1.5,alignItems:"flex-start"}}>
+                          <span style={{color:"#22c55e",fontWeight:800,flexShrink:0}}>✓</span>{f}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {verdFinal&&semColFinal&&(
+                <div style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`,animation:"fadeUp .35s cubic-bezier(.16,1,.3,1) .05s both"}}>
+                  <div className="lbl" style={{marginBottom:8}}>Veredicto Final</div>
+                  <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:semColFinal,lineHeight:1,marginBottom:14}}>{verdFinal}</div>
+                  <p style={{fontSize:14,color:"#3a3228",lineHeight:1.7,marginBottom:res.analisis.proximos_pasos?.length>0?14:0}}>{justFinal}</p>
+                  {res.analisis.proximos_pasos?.length>0&&(
+                    <div style={{borderTop:"1px solid #EAE5DF",paddingTop:14}}>
+                      <div className="lbl" style={{marginBottom:10}}>Próximos Pasos</div>
+                      {res.analisis.proximos_pasos.map((p:string,i:number)=>(
+                        <div key={i} style={{display:"flex",gap:12,marginTop:10,fontSize:13,color:"#3a3228",lineHeight:1.5,alignItems:"flex-start"}}>
+                          <div style={{width:22,height:22,borderRadius:"50%",background:"#EFF6FF",border:`1.5px solid #BFDBFE`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,fontWeight:700,color:BLUE}}>{i+1}</div>
+                          {p}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div style={{marginTop:24,display:"flex",flexDirection:"column" as const,gap:16}}>
+                <button onClick={generarIsometrico} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",transition:"all .2s",letterSpacing:".02em"}}>
+                  {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D del Terreno</>}
+                </button>
+                {isoHtml&&(
+                  <div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a",boxShadow:"0 8px 40px rgba(0,0,0,.15)"}}>
+                    <div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)",letterSpacing:".1em"}}>MODELO 3D — {res.ubicacion?.zona}</span>
+                      </div>
+                      <button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button>
+                    </div>
+                    <iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
+                    <div style={{padding:"10px 20px",display:"flex",gap:16,flexWrap:"wrap" as const,borderTop:"1px solid rgba(255,255,255,.06)"}}>
+                      {([["#ffffff","Volumen construido"],["#e74c3c","Restricciones"],["#27ae60","Área Verde (CAV)"],["#8B6340","Área libre / Terreno"]] as [string,string][]).map(([col,lbl])=>(
+                        <div key={lbl} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,.35)"}}>
+                          <div style={{width:9,height:9,borderRadius:2,background:col}}/>{lbl}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
+                ← Analizar con otro tipo de análisis
+              </button>
+              <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8}}>
+                {pdfLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>:<><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar Reporte PDF<span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span></>}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>)}
+
+    {/* ════ MODAL BIENVENIDA ════ */}
+    {showWelcome&&(
+      <>
+        <div onClick={()=>setShowWelcome(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.6)",backdropFilter:"blur(6px)"}}/>
+        <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,width:"min(520px,92vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",background:"rgba(10,22,40,.92)",backdropFilter:"blur(32px)",WebkitBackdropFilter:"blur(32px)",borderRadius:24,border:"1px solid rgba(94,168,240,.2)",boxShadow:"0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(94,168,240,.08)",overflow:"hidden" as const}}>
+          <div style={{position:"absolute",inset:0,opacity:.12,pointerEvents:"none"}}><svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg"><defs><pattern id="wg" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#4a9ebb" strokeWidth=".6"/></pattern></defs><rect width="100%" height="100%" fill="url(#wg)"/></svg></div>
+          <div style={{position:"relative",zIndex:1,padding:"40px 36px 32px"}}>
+            <div style={{textAlign:"center" as const,marginBottom:20}}>
+              <img src="/LOGO SIMBOLO WHITE.png" alt="" style={{width:100,height:100,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.7))",display:"block"}}/>
+            </div>
+            <div style={{textAlign:"center" as const,marginBottom:28}}>
+              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:"#fff",lineHeight:1.15,marginBottom:6}}>Bienvenido{welcomeName?`, ${welcomeName.split(" ")[0]}`:""}
+              </div>
+              <div style={{fontSize:13,color:"rgba(200,220,240,.55)",lineHeight:1.6}}>Tu asistente de análisis inmobiliario está listo.</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column" as const,gap:10,marginBottom:28}}>
+              {[
+                {icon:"🗺️",title:"Zonificación instantánea",desc:"Identifica uso de suelo, COS/CUS/CAV y giros permitidos según el PDU de Monterrey para cualquier predio."},
+                {icon:"📊",title:"Estudio de mercado con IA",desc:"Precios reales de venta y renta, proyectos de competencia activos y absorción del mercado en la zona."},
+                {icon:"📐",title:"Análisis financiero completo",desc:"ROI, TIR, margen bruto, costo de construcción y veredicto GO / NO-GO para tu proyecto inmobiliario."},
+              ].map(f=>(
+                <div key={f.title} style={{display:"flex",gap:14,alignItems:"flex-start",background:"rgba(255,255,255,.05)",border:"1px solid rgba(94,168,240,.1)",borderRadius:12,padding:"14px 16px"}}>
+                  <span style={{fontSize:20,flexShrink:0,lineHeight:1}}>{f.icon}</span>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:3}}>{f.title}</div>
+                    <div style={{fontSize:12,color:"rgba(200,220,240,.55)",lineHeight:1.5}}>{f.desc}</div>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-
-          {/* Estacionamiento */}
-          {res.analisis?.estacionamiento&&(
-            <div style={{background:"#F8F5F0",border:"1px solid #EAE5DF",borderRadius:14,padding:"20px 24px"}}>
-              <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
-                Requerimiento de Estacionamiento — PDU Monterrey
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12,marginBottom:12}}>
-                {[
-                  {l:"Cajones requeridos",v:`${res.analisis.estacionamiento.cajones_requeridos} cajones`},
-                  {l:"Área requerida",v:`${$(res.analisis.estacionamiento.area_requerida_m2,"n")} m²`},
-                  {l:"Área disponible",v:`${$(res.analisis.estacionamiento.area_disponible_estimada_m2,"n")} m²`},
-                  {l:"Viabilidad",v:res.analisis.estacionamiento.viable?"VIABLE":"RESTRICCIÓN CRÍTICA",col:res.analisis.estacionamiento.viable?"#15803d":"#dc2626"},
-                ].map(k=>(
-                  <div key={k.l}>
-                    <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
-                    <div style={{fontSize:15,fontWeight:700,color:(k as any).col||"#1a1510"}}>{k.v}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{fontSize:12,color:"#7a6f64",lineHeight:1.6}}><strong>Cálculo:</strong> {res.analisis.estacionamiento.calculo}</div>
-              {res.analisis.estacionamiento.notas&&<div style={{fontSize:12,color:"#7a6f64",marginTop:6,lineHeight:1.6}}><strong>Notas:</strong> {res.analisis.estacionamiento.notas}</div>}
-            </div>
-          )}
-
-          {/* SECCIÓN 2 */}
-          <div className="sec-hdr" style={{borderColor:AMBER,marginTop:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:AMBER,letterSpacing:".08em",textTransform:"uppercase" as const}}>2 · Estudio de Mercado</div>
-          </div>
-          <MercadoChartsBlock/>
-          <MercadoComercialBlock/>
-
-          {/* Entorno */}
-          {res.analisis?.entorno_y_urbanismo&&(
-            <div className="card">
-              <div className="lbl" style={{marginBottom:10}}>Entorno y Urbanismo</div>
-              <p style={{fontSize:14,lineHeight:1.7,color:"#3a3228",marginBottom:8}}>{res.analisis.entorno_y_urbanismo.descripcion_zona}</p>
-              {res.analisis.entorno_y_urbanismo.conectividad&&<p style={{fontSize:13,color:"#7a6f64",lineHeight:1.6,marginBottom:8}}>{res.analisis.entorno_y_urbanismo.conectividad}</p>}
-              {res.analisis.entorno_y_urbanismo.servicios_cercanos?.length>0&&(
-                <div style={{marginTop:8}}>{res.analisis.entorno_y_urbanismo.servicios_cercanos.map((s:string,i:number)=>(
-                  <span key={i} style={{background:"#EEE9E3",borderRadius:100,padding:"3px 10px",fontSize:11,fontWeight:500,color:"#5a4f44",margin:"3px 3px 0 0",display:"inline-block"}}>{s}</span>
-                ))}</div>
-              )}
-            </div>
-          )}
-
-          {/* SECCIÓN 3 */}
-          <div className="sec-hdr" style={{borderColor:GREEN,marginTop:8}}>
-            <div style={{fontSize:11,fontWeight:700,color:GREEN,letterSpacing:".08em",textTransform:"uppercase" as const}}>3 · Análisis Financiero</div>
-          </div>
-
-          {finF&&(
-            <div className="card">
-              <div className="lbl" style={{marginBottom:14}}>Desglose financiero completo</div>
-              {finF.calculo_ingresos&&(
-                <div style={{background:"#EFF6FF",borderRadius:10,padding:"12px 16px",marginBottom:16,fontSize:13,color:"#1e3a5f",lineHeight:1.6}}>
-                  <strong>Cálculo de ingresos:</strong> {finF.calculo_ingresos}
-                </div>
-              )}
-              <div className="stagger" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12}}>
-                {[
-                  {l:"Precio terreno",v:$(finF.precio_terreno)},
-                  {l:"Costo construcción",v:$(finF.costo_construccion_total)},
-                  {l:"Estacionamiento",v:`${$(finF.costo_estacionamiento||0)}${finF.cajones_por_vivienda_pdu?` (${finF.cajones_requeridos||0} caj.)`:""}`},
-                  {l:"Indirectos",v:`${finF.gastos_indirectos_pct||0}% → ${$(finF.gastos_indirectos||0)}`},
-                  {l:"Comercialización",v:`${finF.comercializacion_pct||0}% → ${$(finF.comercializacion||0)}`},
-                  {l:"Contingencias",v:`${finF.contingencias_pct||0}% → ${$(finF.contingencias||0)}`},
-                  {l:"Costo total",v:$(finF.costo_total_proyecto),b:true},
-                  {l:"Ingreso estimado",v:$(finF.ingreso_total_estimado),b:true},
-                  {l:"Utilidad bruta",v:$(finF.utilidad_bruta),col:finF.utilidad_bruta>=0?GREEN:"#dc2626",b:true},
-                  {l:"Margen bruto",v:pct(finF.margen_bruto_pct),col:finF.margen_bruto_pct>=15?GREEN:finF.margen_bruto_pct>=8?AMBER:"#dc2626",b:true},
-                  {l:"ROI",v:pct(finF.roi_pct),col:finF.roi_pct>=20?GREEN:finF.roi_pct>=10?AMBER:"#dc2626",b:true},
-                  {l:"TIR estimada",v:pct(finF.tir_estimada_pct),col:finF.tir_estimada_pct>=18?GREEN:finF.tir_estimada_pct>=10?AMBER:"#dc2626",b:true},
-                  {l:"Unidades reales",v:`${finF.unidades_reales||unidadesMax} und.`},
-                  {l:"M² / unidad",v:finF.m2_promedio_unidad?`${finF.m2_promedio_unidad} m²`:"—"},
-                  {l:"Precio/unidad",v:$(finF.precio_venta_por_unidad)},
-                  {l:"Plazo",v:`${finF.plazo_meses} meses`},
-                ].map(k=>(
-                  <div key={k.l} style={{background:"#F5F2EE",borderRadius:10,padding:"13px 15px"}}>
-                    <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
-                    <div style={{fontSize:(k as any).b?17:14,fontWeight:700,color:(k as any).col||"#1a1510"}}>{k.v||"—"}</div>
-                  </div>
+            <div style={{background:"rgba(94,168,240,.1)",border:"1px solid rgba(94,168,240,.2)",borderRadius:12,padding:"12px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div style={{fontSize:12,color:"rgba(200,220,240,.7)"}}>Tienes <strong style={{color:"#5ea8f0"}}>{creditos??3} créditos</strong> para empezar</div>
+              <div style={{display:"flex",gap:4}}>
+                {Array.from({length:Math.min(creditos??3,3)}).map((_,i)=>(
+                  <div key={i} style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 6px #5ea8f0"}}/>
                 ))}
               </div>
             </div>
-          )}
-
-          {/* Red flags + Fortalezas */}
-          {(redFlagsMerged.length>0||res.analisis?.fortalezas?.length>0)&&(
-            <div className="g2">
-              {redFlagsMerged.length>0&&(
-                <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:14,padding:"20px 24px"}}>
-                  <div className="lbl" style={{color:"#c2410c",marginBottom:10}}>Red Flags</div>
-                  {redFlagsMerged.map((f:string,i:number)=>(
-                    <div key={i} style={{display:"flex",gap:8,marginTop:9,fontSize:13,color:"#7c2d12",lineHeight:1.5,alignItems:"flex-start"}}>
-                      <span style={{color:"#f97316",fontWeight:800,flexShrink:0}}>!</span>{f}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {res.analisis?.fortalezas?.length>0&&(
-                <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:14,padding:"20px 24px"}}>
-                  <div className="lbl" style={{color:GREEN,marginBottom:10}}>Fortalezas</div>
-                  {res.analisis.fortalezas.map((f:string,i:number)=>(
-                    <div key={i} style={{display:"flex",gap:8,marginTop:9,fontSize:13,color:"#14532d",lineHeight:1.5,alignItems:"flex-start"}}>
-                      <span style={{color:"#22c55e",fontWeight:800,flexShrink:0}}>✓</span>{f}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Veredicto */}
-          {verdFinal&&semColFinal&&(
-            <div style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`,animation:"fadeUp .35s cubic-bezier(.16,1,.3,1) .05s both"}}>
-              <div className="lbl" style={{marginBottom:8}}>Veredicto Final</div>
-              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:semColFinal,lineHeight:1,marginBottom:14}}>{verdFinal}</div>
-              <p style={{fontSize:14,color:"#3a3228",lineHeight:1.7,marginBottom:res.analisis.proximos_pasos?.length>0?14:0}}>{justFinal}</p>
-              {res.analisis.proximos_pasos?.length>0&&(
-                <div style={{borderTop:"1px solid #EAE5DF",paddingTop:14}}>
-                  <div className="lbl" style={{marginBottom:10}}>Próximos Pasos</div>
-                  {res.analisis.proximos_pasos.map((p:string,i:number)=>(
-                    <div key={i} style={{display:"flex",gap:12,marginTop:10,fontSize:13,color:"#3a3228",lineHeight:1.5,alignItems:"flex-start"}}>
-                      <div style={{width:22,height:22,borderRadius:"50%",background:"#EFF6FF",border:`1.5px solid #BFDBFE`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,fontWeight:700,color:BLUE}}>{i+1}</div>
-                      {p}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── BOTÓN + VISOR ISOMÉTRICO 3D ── */}
-          <div style={{marginTop:24,display:"flex",flexDirection:"column" as const,gap:16}}>
-            <button onClick={generarIsometrico} disabled={isoLoading} style={{
-              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-              background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",
-              border:"none",borderRadius:12,padding:"15px 28px",width:"100%",
-              color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",
-              boxShadow:"0 4px 20px rgba(37,99,168,.25)",transition:"all .2s",letterSpacing:".02em",
-            }}>
-              {isoLoading
-                ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>
-                :<>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  Ver Isométrico 3D del Terreno
-                </>
-              }
+            <button onClick={()=>setShowWelcome(false)} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a4d8a,#2563a8,#1a7a8a)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(37,99,168,.4)"}}>
+              Empezar →
             </button>
+          </div>
+        </div>
+      </>
+    )}
 
-            {isoHtml&&(
-              <div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a",boxShadow:"0 8px 40px rgba(0,0,0,.15)"}}>
-                <div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)",letterSpacing:".1em"}}>MODELO 3D — {res.ubicacion?.zona}</span>
+    {/* ════ MODAL LOGIN ════ */}
+    {showLoginModal&&(
+      <>
+        <div onClick={()=>setShowLoginModal(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
+        <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,width:"min(420px,90vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",border:"1px solid rgba(234,229,223,.8)"}}>
+          <div style={{textAlign:"center" as const,marginBottom:24}}>
+            <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:24,color:"#1a1510",marginBottom:8}}>Crea tu cuenta gratis</div>
+            <p style={{fontSize:14,color:"#7a6f64",lineHeight:1.6}}>Tu análisis está listo para generarse.<br/>Solo necesitas una cuenta para continuar.</p>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:600,color:"#15803d",marginTop:8}}>✦ 3 créditos gratis al registrarte</div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
+            <button onClick={async()=>{await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:`${location.origin}/auth/callback`}});}} style={{width:"100%",padding:"12px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:600,color:"#1a1510",cursor:"pointer"}}>
+              <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+              Continuar con Google
+            </button>
+            <button onClick={()=>{setShowLoginModal(false);window.location.href="/login";}} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>
+              Registrarse con email
+            </button>
+          </div>
+          <button onClick={()=>setShowLoginModal(false)} style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+      </>
+    )}
+
+    {/* ════ MODAL SIN CRÉDITOS ════ */}
+    {showNoCreditsModal&&(
+      <>
+        <div onClick={()=>setShowNoCreditsModal(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
+        <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,width:"min(420px,90vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",border:"1px solid rgba(234,229,223,.8)"}}>
+          <div style={{textAlign:"center" as const,marginBottom:24}}>
+            <div style={{fontSize:36,marginBottom:12}}>⚡</div>
+            <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:24,color:"#1a1510",marginBottom:8}}>Sin créditos disponibles</div>
+            <p style={{fontSize:14,color:"#7a6f64",lineHeight:1.6}}>Tu análisis de <strong style={{color:"#1a1510"}}>{dir}</strong> está listo para generarse.</p>
+          </div>
+          {/* ── NUEVO: abre el modal de paquetes ── */}
+          <button onClick={()=>{setShowNoCreditsModal(false);setShowPaquetesModal(true);}}
+            style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:10,letterSpacing:".02em"}}>
+            Ver paquetes de créditos →
+          </button>
+          <button onClick={()=>setShowNoCreditsModal(false)} style={{width:"100%",padding:"10px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"transparent",color:"#7a6f64",fontSize:13,cursor:"pointer"}}>Cancelar</button>
+          <button onClick={()=>setShowNoCreditsModal(false)} style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+      </>
+    )}
+
+    {/* ════ MODAL PAQUETES MERCADO PAGO — NUEVO ════ */}
+    {showPaquetesModal&&(
+      <>
+        <div onClick={()=>{if(!comprando)setShowPaquetesModal(false);}} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.55)",backdropFilter:"blur(5px)"}}/>
+        <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,width:"min(480px,93vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",background:"rgba(250,247,244,.98)",backdropFilter:"blur(24px)",borderRadius:24,padding:"34px 28px",boxShadow:"0 24px 80px rgba(0,0,0,.3)",border:"1px solid rgba(234,229,223,.9)"}}>
+          <div style={{textAlign:"center" as const,marginBottom:22}}>
+            <div style={{fontSize:32,marginBottom:8}}>💳</div>
+            <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:26,color:"#1a1510",marginBottom:5}}>Comprar créditos</div>
+            <p style={{fontSize:13,color:"#7a6f64"}}>Elige el paquete que mejor se adapte a ti. Pago seguro con Mercado Pago.</p>
+          </div>
+          <div style={{display:"flex",flexDirection:"column" as const,gap:10,marginBottom:18}}>
+            {([
+              {paquete:"3"  as const, precio:"$199",   cr:3,  label:"Starter", desc:"1 análisis completo",       col:"#5ea8f0"},
+              {paquete:"10" as const, precio:"$499",   cr:10, label:"Pro",     desc:"3 análisis completos",      col:"#34d399"},
+              {paquete:"25" as const, precio:"$999",   cr:25, label:"Studio",  desc:"8 análisis — más popular",  col:AMBER, best:true},
+              {paquete:"60" as const, precio:"$1,999", cr:60, label:"Firma",   desc:"20 análisis para equipos",  col:"#a78bfa"},
+            ]).map(p=>(
+              <button key={p.paquete}
+                onClick={()=>comprarCreditos(p.paquete)}
+                disabled={comprando}
+                style={{
+                  background:p.best?"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)":"rgba(255,255,255,.85)",
+                  border:p.best?"2px solid transparent":`1.5px solid #EAE5DF`,
+                  borderRadius:14,padding:"14px 18px",cursor:comprando?"not-allowed":"pointer",
+                  display:"flex",alignItems:"center",justifyContent:"space-between",
+                  transition:"all .2s",opacity:comprando?.6:1,
+                  boxShadow:p.best?"0 4px 20px rgba(37,99,168,.2)":"none",
+                }}>
+                <div style={{textAlign:"left" as const}}>
+                  <div style={{fontSize:13,fontWeight:700,color:p.best?"#fff":"#1a1510",display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                    <span style={{width:8,height:8,borderRadius:"50%",background:p.col,display:"inline-block",flexShrink:0,boxShadow:`0 0 6px ${p.col}`}}/>
+                    {p.label}
+                    {p.best&&<span style={{fontSize:9,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"2px 8px",color:"rgba(255,255,255,.85)",fontWeight:700,letterSpacing:".06em"}}>MÁS POPULAR</span>}
                   </div>
-                  <button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button>
+                  <div style={{fontSize:11,color:p.best?"rgba(255,255,255,.55)":"#a09888",paddingLeft:16}}>{p.desc}</div>
                 </div>
-                <iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
-                <div style={{padding:"10px 20px",display:"flex",gap:16,flexWrap:"wrap" as const,borderTop:"1px solid rgba(255,255,255,.06)"}}>
-                  {([["#ffffff","Volumen construido"],["#e74c3c","Restricciones"],["#27ae60","Área Verde (CAV)"],["#8B6340","Área libre / Terreno"]] as [string,string][]).map(([col,lbl])=>(
-                    <div key={lbl} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,.35)"}}>
-                      <div style={{width:9,height:9,borderRadius:2,background:col}}/>
-                      {lbl}
-                    </div>
-                  ))}
+                <div style={{textAlign:"right" as const,flexShrink:0,marginLeft:16}}>
+                  <div style={{fontSize:20,fontWeight:700,color:p.best?"#fff":"#1a1510",lineHeight:1}}>{p.precio}</div>
+                  <div style={{fontSize:11,color:p.best?"rgba(255,255,255,.45)":"#a09888"}}>{p.cr} créditos</div>
                 </div>
+              </button>
+            ))}
+          </div>
+
+          {comprando&&(
+            <div style={{textAlign:"center" as const,padding:"10px 0",marginBottom:8}}>
+              <div style={{display:"inline-flex",alignItems:"center",gap:10,background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,padding:"10px 18px"}}>
+                <div style={{width:14,height:14,border:"2px solid #93c5fd",borderTopColor:BLUE,borderRadius:"50%",animation:"spin .7s linear infinite"}}/>
+                <span style={{fontSize:13,fontWeight:600,color:BLUE}}>Redirigiendo a Mercado Pago…</span>
+              </div>
+            </div>
+          )}
+
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:14}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <span style={{fontSize:11,color:"#7a6f64"}}>Pago seguro · Sin suscripción · Los créditos no expiran</span>
+          </div>
+
+          {!comprando&&(
+            <button onClick={()=>setShowPaquetesModal(false)} style={{width:"100%",padding:"10px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"transparent",color:"#7a6f64",fontSize:13,cursor:"pointer"}}>
+              Cancelar
+            </button>
+          )}
+          {!comprando&&(
+            <button onClick={()=>setShowPaquetesModal(false)} style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          )}
+        </div>
+      </>
+    )}
+
+    {/* ════ SIDEBAR ════ */}
+    {sidebarOpen&&(
+      <>
+        <div onClick={()=>setSidebarOpen(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:40,background:"rgba(0,0,0,.3)",backdropFilter:"blur(2px)"}}/>
+        <div className="sidebar-panel" style={{position:"fixed",top:0,right:0,bottom:0,zIndex:50,width:380,maxWidth:"min(380px,100vw)",background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",borderLeft:"1px solid rgba(234,229,223,.8)",boxShadow:"-8px 0 40px rgba(0,0,0,.12)",display:"flex",flexDirection:"column" as const}}>
+          <div style={{padding:"20px 24px",borderBottom:"1px solid #EAE5DF",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(255,255,255,.6)"}}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#0f2240,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff"}}>
+                {(userSession?.user?.email||"U")[0].toUpperCase()}
+              </div>
+              <div>
+                <div style={{fontSize:12,fontWeight:700,color:"#1a1510"}}>{userSession?.user?.email}</div>
+                <div style={{fontSize:10,color:"#a09888",marginTop:1}}>Cuenta activa</div>
+              </div>
+            </div>
+            <button onClick={()=>setSidebarOpen(false)} style={{background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          </div>
+
+          {/* Créditos */}
+          <div style={{margin:"20px 24px 0",background:"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",borderRadius:16,padding:"20px 22px",color:"#fff"}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",color:"rgba(255,255,255,.5)",marginBottom:4}}>CRÉDITOS DISPONIBLES</div>
+            <div style={{fontSize:42,fontWeight:700,lineHeight:1,marginBottom:4}}>{creditos??0}</div>
+            <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginBottom:16}}>
+              {creditos===0?"Sin créditos — compra más para continuar":creditos===1?"Alcanza para 1 análisis de lineamientos":`Suficiente para ${Math.floor((creditos??0)/3)} análisis completo${Math.floor((creditos??0)/3)!==1?"s":""}`}
+            </div>
+            <div style={{marginBottom:16,display:"flex",flexDirection:"column" as const,gap:6}}>
+              <div style={{fontSize:9,fontWeight:700,letterSpacing:".08em",color:"rgba(255,255,255,.35)",marginBottom:2}}>COSTO POR TIPO DE ANÁLISIS</div>
+              {[{t:"Lineamientos urbanísticos",c:1,col:"#5ea8f0"},{t:"Estudio de mercado",c:2,col:"#d97706"},{t:"Análisis completo",c:3,col:"#22c55e"}].map(x=>(
+                <div key={x.t} style={{background:"rgba(255,255,255,.08)",borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,.65)",fontWeight:500}}>{x.t}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:x.col,flexShrink:0,marginLeft:8}}>{x.c} crédito{x.c>1?"s":""}</span>
+                </div>
+              ))}
+            </div>
+            {/* ── NUEVO: botón que abre el modal de paquetes ── */}
+            <button
+              onClick={()=>{setSidebarOpen(false);setShowPaquetesModal(true);}}
+              style={{width:"100%",background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:10,padding:"11px",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:".02em",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              💳 Comprar créditos
+            </button>
+          </div>
+
+          {/* Historial */}
+          <div style={{padding:"20px 24px",flex:1,overflowY:"auto" as const}}>
+            <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",color:"#a09888",marginBottom:14}}>HISTORIAL DE REPORTES</div>
+            {historial.length===0?(
+              <div style={{textAlign:"center" as const,padding:"32px 0",color:"#c0b8ae"}}>
+                <div style={{fontSize:28,marginBottom:8}}>📋</div>
+                <div style={{fontSize:13}}>Aún no tienes reportes</div>
+                <div style={{fontSize:11,marginTop:4}}>Genera tu primer análisis</div>
+              </div>
+            ):(
+              <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
+                {historial.map((r:any)=>{
+                  const col=r.semaforo==="VERDE"?"#15803d":r.semaforo==="AMARILLO"?"#d97706":r.semaforo==="ROJO"?"#dc2626":"#a09888";
+                  const fecha=new Date(r.created_at).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});
+                  const tipoLabel=r.tipo_analisis==="lineamientos"?"Lin.":r.tipo_analisis==="mercado"?"Mdo.":"Compl.";
+                  return(
+                    <button key={r.id} onClick={()=>{
+                      if(r.resultado){
+                        const d=r.resultado;
+                        setRes({ok:true,tipo_analisis:r.tipo_analisis,ubicacion:d.ubicacion,terreno:d.terreno,lineamientos:d.lineamientos,giros:d.giros,analisis:d.analisis});
+                        setSidebarOpen(false);
+                      }
+                    }} style={{background:"rgba(255,255,255,.8)",border:"1px solid #EAE5DF",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left" as const,transition:"all .2s cubic-bezier(.16,1,.3,1)"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:12,fontWeight:600,color:"#1a1510",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.direccion}</div>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
+                            <span style={{fontSize:10,color:"#a09888"}}>{fecha}</span>
+                            <span style={{fontSize:10,background:"#EAE5DF",borderRadius:4,padding:"1px 6px",color:"#7a6f64",fontWeight:600}}>{tipoLabel}</span>
+                            <span style={{fontSize:10,color:"#a09888"}}>{r.creditos_usados} cr.</span>
+                          </div>
+                        </div>
+                        {r.semaforo&&(
+                          <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                            <div style={{width:8,height:8,borderRadius:"50%",background:col,boxShadow:`0 0 6px ${col}`}}/>
+                            <span style={{fontSize:10,fontWeight:700,color:col}}>{r.semaforo}</span>
+                          </div>
+                        )}
+                      </div>
+                      {r.veredicto&&r.tipo_analisis==="completo"&&(
+                        <div style={{marginTop:6,fontSize:11,fontWeight:700,color:col}}>{r.veredicto}</div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-            {/* ── BOTÓN NUEVO ANÁLISIS ── */}
-            <button onClick={()=>setRes(null)} style={{
-              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-              background:"transparent",border:"1.5px solid #2563a8",
-              borderRadius:12,padding:"13px 28px",width:"100%",
-              color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",
-              letterSpacing:".02em",marginTop:4,
-            }}>
-              ← Analizar con otro tipo de análisis
+          <div style={{padding:"16px 24px",borderTop:"1px solid #EAE5DF"}}>
+            <button onClick={async()=>{await supabase.auth.signOut();setSidebarOpen(false);setUserSession(null);setCreditos(null);setHistorial([]);}} style={{width:"100%",background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"10px",color:"#7a6f64",fontSize:13,fontWeight:500,cursor:"pointer"}}>
+              Cerrar sesión
             </button>
-
-            {/* ── BOTÓN PDF ── */}
-            <button onClick={generarPDF} disabled={pdfLoading} style={{
-              display:"flex",alignItems:"center",justifyContent:"center",gap:10,
-              background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",
-              border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",
-              color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,
-              cursor:pdfLoading?"not-allowed":"pointer",
-              boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8,
-            }}>
-              {pdfLoading
-                ?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>
-                :<>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/>
-                    <polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Exportar Reporte PDF
-                  <span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span>
-                </>
-              }
-            </button>
-
+          </div>
         </div>
-      )}
-      </div>{/* results-container */}
-    </div></div>)}
-
-
-      {/* ════ MODAL BIENVENIDA ════ */}
-      {showWelcome&&(
-        <>
-          <div onClick={()=>setShowWelcome(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.6)",backdropFilter:"blur(6px)"}}/>
-          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
-            width:"min(520px,92vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",
-            background:"rgba(10,22,40,.92)",
-            backdropFilter:"blur(32px)",
-            WebkitBackdropFilter:"blur(32px)",
-            borderRadius:24,
-            border:"1px solid rgba(94,168,240,.2)",
-            boxShadow:"0 32px 80px rgba(0,0,0,.5), 0 0 0 1px rgba(94,168,240,.08)",
-            overflow:"hidden" as const}}>
-
-            {/* Grid background inside modal */}
-            <div style={{position:"absolute",inset:0,opacity:.12,pointerEvents:"none"}}>
-              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="wg" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#4a9ebb" strokeWidth=".6"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#wg)"/>
-              </svg>
-            </div>
-            <div style={{position:"absolute",top:"30%",left:"50%",width:400,height:400,background:"radial-gradient(circle, rgba(37,99,168,.2) 0%, transparent 70%)",transform:"translate(-50%,-50%)",pointerEvents:"none"}}/>
-
-            <div style={{position:"relative",zIndex:1,padding:"40px 36px 32px"}}>
-
-              {/* Symbol */}
-              <div style={{textAlign:"center" as const,marginBottom:20}}>
-                <img src="/LOGO SIMBOLO WHITE.png" alt="" style={{width:100,height:100,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.7))",display:"block"}}/>
-              </div>
-
-              {/* Title */}
-              <div style={{textAlign:"center" as const,marginBottom:28}}>
-                <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:"#fff",lineHeight:1.15,marginBottom:6}}>
-                  Bienvenido{welcomeName?`, ${welcomeName.split(" ")[0]}`:""}
-                </div>
-                <div style={{fontSize:13,color:"rgba(200,220,240,.55)",lineHeight:1.6}}>Tu asistente de análisis inmobiliario está listo.</div>
-              </div>
-
-              {/* Features */}
-              <div style={{display:"flex",flexDirection:"column" as const,gap:10,marginBottom:28}}>
-                {[
-                  {icon:"🗺️",title:"Zonificación instantánea",desc:"Identifica uso de suelo, COS/CUS/CAV y giros permitidos según el PDU de Monterrey para cualquier predio."},
-                  {icon:"📊",title:"Estudio de mercado con IA",desc:"Precios reales de venta y renta, proyectos de competencia activos y absorción del mercado en la zona."},
-                  {icon:"📐",title:"Análisis financiero completo",desc:"ROI, TIR, margen bruto, costo de construcción y veredicto GO / NO-GO para tu proyecto inmobiliario."},
-                ].map(f=>(
-                  <div key={f.title} style={{display:"flex",gap:14,alignItems:"flex-start",background:"rgba(255,255,255,.05)",border:"1px solid rgba(94,168,240,.1)",borderRadius:12,padding:"14px 16px"}}>
-                    <span style={{fontSize:20,flexShrink:0,lineHeight:1}}>{f.icon}</span>
-                    <div>
-                      <div style={{fontSize:13,fontWeight:700,color:"#fff",marginBottom:3}}>{f.title}</div>
-                      <div style={{fontSize:12,color:"rgba(200,220,240,.55)",lineHeight:1.5}}>{f.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Credits badge */}
-              <div style={{background:"rgba(94,168,240,.1)",border:"1px solid rgba(94,168,240,.2)",borderRadius:12,padding:"12px 16px",marginBottom:20,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                <div style={{fontSize:12,color:"rgba(200,220,240,.7)"}}>Tienes <strong style={{color:"#5ea8f0"}}>{creditos??3} créditos</strong> para empezar</div>
-                <div style={{display:"flex",gap:4}}>
-                  {Array.from({length:Math.min(creditos??3,3)}).map((_,i)=>(
-                    <div key={i} style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 6px #5ea8f0"}}/>
-                  ))}
-                </div>
-              </div>
-
-              <button onClick={()=>setShowWelcome(false)} style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#1a4d8a,#2563a8,#1a7a8a)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer",letterSpacing:".02em",boxShadow:"0 4px 20px rgba(37,99,168,.4)"}}>
-                Empezar →
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ════ MODAL LOGIN ════ */}
-      {showLoginModal&&(
-        <>
-          <div onClick={()=>setShowLoginModal(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
-          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
-            width:"min(420px,90vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",
-            background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
-            borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",
-            border:"1px solid rgba(234,229,223,.8)"}}>
-            <div style={{textAlign:"center" as const,marginBottom:24}}>
-              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:24,color:"#1a1510",marginBottom:8}}>Crea tu cuenta gratis</div>
-              <p style={{fontSize:14,color:"#7a6f64",lineHeight:1.6}}>
-                Tu análisis está listo para generarse.<br/>Solo necesitas una cuenta para continuar.
-              </p>
-              <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:600,color:"#15803d",marginTop:8}}>
-                ✦ 3 créditos gratis al registrarte
-              </div>
-            </div>
-            <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
-              <button onClick={async()=>{
-                await supabase.auth.signInWithOAuth({provider:"google",options:{redirectTo:`${location.origin}/auth/callback`}});
-              }} style={{width:"100%",padding:"12px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:10,fontSize:14,fontWeight:600,color:"#1a1510",cursor:"pointer"}}>
-                <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                Continuar con Google
-              </button>
-              <button onClick={()=>{setShowLoginModal(false);window.location.href="/login";}} style={{width:"100%",padding:"12px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>
-                Registrarse con email
-              </button>
-            </div>
-            <button onClick={()=>setShowLoginModal(false)} style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-          </div>
-        </>
-      )}
-
-      {/* ════ MODAL SIN CRÉDITOS ════ */}
-      {showNoCreditsModal&&(
-        <>
-          <div onClick={()=>setShowNoCreditsModal(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.5)",backdropFilter:"blur(4px)"}}/>
-          <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
-            width:"min(420px,90vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",
-            background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
-            borderRadius:24,padding:"36px 32px",boxShadow:"0 24px 80px rgba(0,0,0,.25)",
-            border:"1px solid rgba(234,229,223,.8)"}}>
-            <div style={{textAlign:"center" as const,marginBottom:24}}>
-              <div style={{fontSize:36,marginBottom:12}}>⚡</div>
-              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:24,color:"#1a1510",marginBottom:8}}>Sin créditos disponibles</div>
-              <p style={{fontSize:14,color:"#7a6f64",lineHeight:1.6}}>
-                Tu análisis de <strong style={{color:"#1a1510"}}>{dir}</strong> está guardado.<br/>
-                Compra créditos para generarlo al instante.
-              </p>
-            </div>
-            <div style={{background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",borderRadius:16,padding:"20px",marginBottom:16,textAlign:"center" as const}}>
-              <div style={{fontSize:13,color:"rgba(255,255,255,.6)",marginBottom:4}}>PAQUETE ÚNICO</div>
-              <div style={{fontSize:32,fontWeight:700,color:"#fff",lineHeight:1}}>$199 <span style={{fontSize:16,fontWeight:400}}>MXN</span></div>
-              <div style={{fontSize:12,color:"rgba(255,255,255,.6)",marginTop:4}}>3 créditos · 1 análisis completo</div>
-            </div>
-            <button style={{width:"100%",padding:"14px",borderRadius:12,border:"none",background:"linear-gradient(135deg,#0f2240,#1a4d8a,#1a7a8a)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginBottom:10,letterSpacing:".02em"}}>
-              Comprar — $199 MXN
-            </button>
-            <button onClick={()=>setShowNoCreditsModal(false)} style={{width:"100%",padding:"10px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"transparent",color:"#7a6f64",fontSize:13,cursor:"pointer"}}>
-              Cancelar
-            </button>
-            <button onClick={()=>setShowNoCreditsModal(false)} style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-          </div>
-        </>
-      )}
-
-      {/* ════ SIDEBAR ════ */}
-      {sidebarOpen&&(
-        <>
-          {/* Overlay */}
-          <div onClick={()=>setSidebarOpen(false)} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:40,background:"rgba(0,0,0,.3)",backdropFilter:"blur(2px)"}}/>
-
-          {/* Panel */}
-          <div className="sidebar-panel" style={{position:"fixed",top:0,right:0,bottom:0,zIndex:50,width:380,maxWidth:"min(380px,100vw)",
-            background:"rgba(250,247,244,.97)",backdropFilter:"blur(24px)",
-            borderLeft:"1px solid rgba(234,229,223,.8)",
-            boxShadow:"-8px 0 40px rgba(0,0,0,.12)",
-            display:"flex",flexDirection:"column" as const}}>
-
-            {/* Header sidebar */}
-            <div style={{padding:"20px 24px",borderBottom:"1px solid #EAE5DF",display:"flex",alignItems:"center",justifyContent:"space-between",background:"rgba(255,255,255,.6)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#0f2240,#1a7a8a)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:"#fff"}}>
-                  {(userSession?.user?.email||"U")[0].toUpperCase()}
-                </div>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:"#1a1510"}}>{userSession?.user?.email}</div>
-                  <div style={{fontSize:10,color:"#a09888",marginTop:1}}>Cuenta activa</div>
-                </div>
-              </div>
-              <button onClick={()=>setSidebarOpen(false)} style={{background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-            </div>
-
-            {/* Créditos */}
-            <div style={{margin:"20px 24px 0",background:"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",borderRadius:16,padding:"20px 22px",color:"#fff"}}>
-              <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",color:"rgba(255,255,255,.5)",marginBottom:4}}>CRÉDITOS DISPONIBLES</div>
-              <div style={{fontSize:42,fontWeight:700,lineHeight:1,marginBottom:4}}>{creditos??0}</div>
-              <div style={{fontSize:12,color:"rgba(255,255,255,.5)",marginBottom:16}}>
-                {creditos===0?"Sin créditos — compra más para continuar":creditos===1?"Alcanza para 1 análisis de lineamientos":`Suficiente para ${Math.floor((creditos??0)/3)} análisis completo${Math.floor((creditos??0)/3)!==1?"s":""}`}
-              </div>
-              <div style={{marginBottom:16,display:"flex",flexDirection:"column" as const,gap:6}}>
-                <div style={{fontSize:9,fontWeight:700,letterSpacing:".08em",color:"rgba(255,255,255,.35)",marginBottom:2}}>COSTO POR TIPO DE ANÁLISIS</div>
-                {[{t:"Lineamientos urbanísticos",c:1,col:"#5ea8f0"},{t:"Estudio de mercado",c:2,col:"#d97706"},{t:"Análisis completo",c:3,col:"#22c55e"}].map(x=>(
-                  <div key={x.t} style={{background:"rgba(255,255,255,.08)",borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                    <span style={{fontSize:11,color:"rgba(255,255,255,.65)",fontWeight:500}}>{x.t}</span>
-                    <span style={{fontSize:12,fontWeight:700,color:x.col,flexShrink:0,marginLeft:8}}>{x.c} crédito{x.c>1?"s":""}</span>
-                  </div>
-                ))}
-              </div>
-              <button style={{width:"100%",background:"rgba(255,255,255,.12)",border:"1px solid rgba(255,255,255,.2)",borderRadius:10,padding:"10px",color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer",letterSpacing:".02em"}}>
-                + Comprar créditos — $199 MXN
-              </button>
-            </div>
-
-            {/* Historial */}
-            <div style={{padding:"20px 24px",flex:1}}>
-              <div style={{fontSize:10,fontWeight:700,letterSpacing:".1em",color:"#a09888",marginBottom:14}}>HISTORIAL DE REPORTES</div>
-
-              {historial.length===0?(
-                <div style={{textAlign:"center" as const,padding:"32px 0",color:"#c0b8ae"}}>
-                  <div style={{fontSize:28,marginBottom:8}}>📋</div>
-                  <div style={{fontSize:13}}>Aún no tienes reportes</div>
-                  <div style={{fontSize:11,marginTop:4}}>Genera tu primer análisis</div>
-                </div>
-              ):(
-                <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
-                  {historial.map((r:any)=>{
-                    const col=r.semaforo==="VERDE"?"#15803d":r.semaforo==="AMARILLO"?"#d97706":r.semaforo==="ROJO"?"#dc2626":"#a09888";
-                    const fecha=new Date(r.created_at).toLocaleDateString("es-MX",{day:"2-digit",month:"short"});
-                    const tipoLabel=r.tipo_analisis==="lineamientos"?"Lin.":r.tipo_analisis==="mercado"?"Mdo.":"Compl.";
-                    return(
-                      <button key={r.id} onClick={()=>{
-                        if(r.resultado){
-                          const d=r.resultado;
-                          setRes({ok:true,tipo_analisis:r.tipo_analisis,ubicacion:d.ubicacion,terreno:d.terreno,lineamientos:d.lineamientos,giros:d.giros,analisis:d.analisis});
-                          setSidebarOpen(false);
-                        }
-                      }} style={{background:"rgba(255,255,255,.8)",border:"1px solid #EAE5DF",borderRadius:12,padding:"12px 14px",cursor:"pointer",textAlign:"left" as const,transition:"all .2s cubic-bezier(.16,1,.3,1)"}}>
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:8}}>
-                          <div style={{flex:1,minWidth:0}}>
-                            <div style={{fontSize:12,fontWeight:600,color:"#1a1510",lineHeight:1.3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" as const}}>{r.direccion}</div>
-                            <div style={{display:"flex",alignItems:"center",gap:6,marginTop:4}}>
-                              <span style={{fontSize:10,color:"#a09888"}}>{fecha}</span>
-                              <span style={{fontSize:10,background:"#EAE5DF",borderRadius:4,padding:"1px 6px",color:"#7a6f64",fontWeight:600}}>{tipoLabel}</span>
-                              <span style={{fontSize:10,color:"#a09888"}}>{r.creditos_usados} cr.</span>
-                            </div>
-                          </div>
-                          {r.semaforo&&(
-                            <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                              <div style={{width:8,height:8,borderRadius:"50%",background:col,boxShadow:`0 0 6px ${col}`}}/>
-                              <span style={{fontSize:10,fontWeight:700,color:col}}>{r.semaforo}</span>
-                            </div>
-                          )}
-                        </div>
-                        {r.veredicto&&r.tipo_analisis==="completo"&&(
-                          <div style={{marginTop:6,fontSize:11,fontWeight:700,color:col}}>{r.veredicto}</div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Cerrar sesión */}
-            <div style={{padding:"16px 24px",borderTop:"1px solid #EAE5DF"}}>
-              <button onClick={async()=>{await supabase.auth.signOut();setSidebarOpen(false);setUserSession(null);setCreditos(null);setHistorial([]);}} style={{width:"100%",background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"10px",color:"#7a6f64",fontSize:13,fontWeight:500,cursor:"pointer"}}>
-                Cerrar sesión
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      </>
+    )}
   </>);
 }
