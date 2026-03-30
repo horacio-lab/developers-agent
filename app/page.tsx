@@ -1347,101 +1347,83 @@ export default function Page(){
           {/* LINEAMIENTOS */}
           {res&&!loading&&res.tipo_analisis==="lineamientos"&&(
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-              <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
+              <Header/>
+              {res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
                 <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
-                  <img
-                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=15&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
-                    style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
-                    alt="Vista satelital"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
+                  <img src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=15&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`} style={{width:"100%",height:200,objectFit:"cover",display:"block"}} alt="Vista satelital" referrerPolicy="no-referrer-when-downgrade"/>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"14px 20px",background:"rgba(10,22,40,.55)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/>
-                      <span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span>
-                    </div>
-                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}>
-                      <span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span>
-                      <span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span>
-                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/><span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span></div>
+                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}><span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span><span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span></div>
                   </div>
                 </div>
               )}
               {LineamientosBlock()}
-              <button onClick={()=>generarIsometrico(true)} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",letterSpacing:".02em"}}>
-                {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D<span style={{background:"rgba(255,255,255,.15)",borderRadius:100,padding:"2px 10px",fontSize:11,fontWeight:700,marginLeft:4}}>1 crédito</span></>}
-              </button>
               {isoHtml&&(<div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a"}}><div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)"}}>MODELO 3D — {res.ubicacion?.zona}</span><button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button></div><iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/></div>)}
-              <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
-                ← Analizar con otro tipo de análisis
-              </button>
-              <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8}}>
-                {pdfLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>:<><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar Reporte PDF<span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span></>}
-              </button>
+              <div style={{marginTop:24,background:"rgba(255,255,255,.7)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",border:"1px solid rgba(234,229,223,.8)",borderRadius:16,padding:"20px 24px",display:"flex",flexDirection:"column" as const,gap:10}}>
+                <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:9,background:pdfLoading?"#e8e3dd":"#1a1510",border:"none",borderRadius:10,padding:"13px",width:"100%",color:pdfLoading?"#a09888":"#fff",fontSize:13,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",letterSpacing:".02em"}}>
+                  {pdfLoading?<><div style={{width:14,height:14,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>Generando PDF…</>:<><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar PDF</>}
+                </button>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <button onClick={()=>generarIsometrico(true)} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,background:isoLoading?"#e8e3dd":"rgba(37,99,168,.08)",border:"1.5px solid rgba(37,99,168,.2)",borderRadius:10,padding:"11px",color:isoLoading?"#a09888":"#2563a8",fontSize:12,fontWeight:600,cursor:isoLoading?"not-allowed":"pointer"}}>
+                    {isoLoading?<><div style={{width:12,height:12,border:"2px solid #a09888",borderTopColor:"#2563a8",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>Generando…</>:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#2563a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Isométrico 3D<span style={{fontSize:10,color:"#a09888",fontWeight:500}}>·1cr</span></>}
+                  </button>
+                  <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"11px",color:"#a09888",fontSize:12,fontWeight:500,cursor:"pointer"}}>
+                    ← Nuevo análisis
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
           {/* MERCADO */}
           {res&&!loading&&res.tipo_analisis==="mercado"&&(
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-              <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
+              <Header/>
+              {res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
                 <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
-                  <img
-                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=15&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
-                    style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
-                    alt="Vista satelital"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
+                  <img src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=15&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`} style={{width:"100%",height:200,objectFit:"cover",display:"block"}} alt="Vista satelital" referrerPolicy="no-referrer-when-downgrade"/>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"14px 20px",background:"rgba(10,22,40,.55)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/>
-                      <span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span>
-                    </div>
-                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}>
-                      <span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span>
-                      <span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span>
-                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/><span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span></div>
+                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}><span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span><span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span></div>
                   </div>
                 </div>
-              )}  <LineamientosBlock/>
+              )}
               {MercadoChartsBlock()}
               {MercadoComercialBlock()}
               <div className="sec-hdr" style={{borderColor:BLUE,marginTop:8}}>
                 <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos y Giros Permitidos</div>
               </div>
               {LineamientosBlock()}
-              <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
-                ← Analizar con otro tipo de análisis
-              </button>
-              <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8}}>
-                {pdfLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>:<><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar Reporte PDF<span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span></>}
-              </button>
+              {isoHtml&&(<div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a"}}><div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)"}}>MODELO 3D — {res.ubicacion?.zona}</span><button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button></div><iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/></div>)}
+              <div style={{marginTop:24,background:"rgba(255,255,255,.7)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",border:"1px solid rgba(234,229,223,.8)",borderRadius:16,padding:"20px 24px",display:"flex",flexDirection:"column" as const,gap:10}}>
+                <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:9,background:pdfLoading?"#e8e3dd":"#1a1510",border:"none",borderRadius:10,padding:"13px",width:"100%",color:pdfLoading?"#a09888":"#fff",fontSize:13,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",letterSpacing:".02em"}}>
+                  {pdfLoading?<><div style={{width:14,height:14,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>Generando PDF…</>:<><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar PDF</>}
+                </button>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <button onClick={()=>generarIsometrico(true)} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,background:isoLoading?"#e8e3dd":"rgba(37,99,168,.08)",border:"1.5px solid rgba(37,99,168,.2)",borderRadius:10,padding:"11px",color:isoLoading?"#a09888":"#2563a8",fontSize:12,fontWeight:600,cursor:isoLoading?"not-allowed":"pointer"}}>
+                    {isoLoading?<><div style={{width:12,height:12,border:"2px solid #a09888",borderTopColor:"#2563a8",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>Generando…</>:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#2563a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Isométrico 3D<span style={{fontSize:10,color:"#a09888",fontWeight:500}}>·1cr</span></>}
+                  </button>
+                  <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"11px",color:"#a09888",fontSize:12,fontWeight:500,cursor:"pointer"}}>
+                    ← Nuevo análisis
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
           {/* COMPLETO */}
           {res&&!loading&&res.tipo_analisis==="completo"&&(
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
-              <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
+              <Header/>
+              {res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
                 <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
-                  <img
-                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=15&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
-                    style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
-                    alt="Vista satelital"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
+                  <img src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=15&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`} style={{width:"100%",height:200,objectFit:"cover",display:"block"}} alt="Vista satelital" referrerPolicy="no-referrer-when-downgrade"/>
                   <div style={{position:"absolute",bottom:0,left:0,right:0,padding:"14px 20px",background:"rgba(10,22,40,.55)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",borderTop:"1px solid rgba(255,255,255,.12)",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/>
-                      <span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span>
-                    </div>
-                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}>
-                      <span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span>
-                      <span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span>
-                    </div>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:8,height:8,borderRadius:"50%",background:"#5ea8f0",boxShadow:"0 0 8px #5ea8f0",flexShrink:0}}/><span style={{fontSize:12,fontWeight:600,color:"#fff",letterSpacing:".01em"}}>{res.ubicacion.direccion}</span></div>
+                    <div style={{display:"flex",gap:12,alignItems:"center",flexShrink:0}}><span style={{fontSize:10,color:"rgba(255,255,255,.45)",fontFamily:"monospace"}}>{(+res.ubicacion.lat).toFixed(5)}, {(+res.ubicacion.lng).toFixed(5)}</span><span style={{fontSize:10,fontWeight:700,color:"#5ea8f0",background:"rgba(37,99,168,.25)",border:"1px solid rgba(94,168,240,.3)",borderRadius:20,padding:"2px 10px",letterSpacing:".05em"}}>SATÉLITE</span></div>
                   </div>
                 </div>
-              )}  <LineamientosBlock/>
+              )}
               {res.analisis?.resumen_ejecutivo&&(
                 <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:14,padding:"20px 24px"}}>
                   <div style={{fontSize:10,fontWeight:700,color:BLUE,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:8}}>Resumen Ejecutivo</div>
@@ -1579,40 +1561,38 @@ export default function Page(){
                   )}
                 </div>
               )}
-              <div style={{marginTop:24,display:"flex",flexDirection:"column" as const,gap:16}}>
-                <button onClick={()=>generarIsometrico()} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",transition:"all .2s",letterSpacing:".02em"}}>
-                  {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D del Terreno</>}
-                </button>
-                {isoHtml&&(
-                  <div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a",boxShadow:"0 8px 40px rgba(0,0,0,.15)"}}>
-                    <div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)",letterSpacing:".1em"}}>MODELO 3D — {res.ubicacion?.zona}</span>
-                      </div>
-                      <button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button>
+              {isoHtml&&(
+                <div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a",boxShadow:"0 8px 40px rgba(0,0,0,.15)"}}>
+                  <div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)",letterSpacing:".1em"}}>MODELO 3D — {res.ubicacion?.zona}</span>
                     </div>
-                    <iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
-                    <div style={{padding:"10px 20px",display:"flex",gap:16,flexWrap:"wrap" as const,borderTop:"1px solid rgba(255,255,255,.06)"}}>
-                      {([["#ffffff","Volumen construido"],["#e74c3c","Restricciones"],["#27ae60","Área Verde (CAV)"],["#8B6340","Área libre / Terreno"]] as [string,string][]).map(([col,lbl])=>(
-                        <div key={lbl} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,.35)"}}>
-                          <div style={{width:9,height:9,borderRadius:2,background:col}}/>{lbl}
-                        </div>
-                      ))}
-                    </div>
+                    <button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button>
                   </div>
-                )}
+                  <iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/>
+                  <div style={{padding:"10px 20px",display:"flex",gap:16,flexWrap:"wrap" as const,borderTop:"1px solid rgba(255,255,255,.06)"}}>
+                    {([["#ffffff","Volumen construido"],["#e74c3c","Restricciones"],["#27ae60","Área Verde (CAV)"],["#8B6340","Área libre / Terreno"]] as [string,string][]).map(([col,lbl])=>(
+                      <div key={lbl} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"rgba(255,255,255,.35)"}}>
+                        <div style={{width:9,height:9,borderRadius:2,background:col}}/>{lbl}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div style={{marginTop:24,background:"rgba(255,255,255,.7)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",border:"1px solid rgba(234,229,223,.8)",borderRadius:16,padding:"20px 24px",display:"flex",flexDirection:"column" as const,gap:10}}>
+                <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:9,background:pdfLoading?"#e8e3dd":"#1a1510",border:"none",borderRadius:10,padding:"13px",width:"100%",color:pdfLoading?"#a09888":"#fff",fontSize:13,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",letterSpacing:".02em"}}>
+                  {pdfLoading?<><div style={{width:14,height:14,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>Generando PDF…</>:<><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar PDF</>}
+                </button>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  <button onClick={()=>generarIsometrico()} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,background:isoLoading?"#e8e3dd":"rgba(37,99,168,.08)",border:"1.5px solid rgba(37,99,168,.2)",borderRadius:10,padding:"11px",color:isoLoading?"#a09888":"#2563a8",fontSize:12,fontWeight:600,cursor:isoLoading?"not-allowed":"pointer"}}>
+                    {isoLoading?<><div style={{width:12,height:12,border:"2px solid #a09888",borderTopColor:"#2563a8",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>Generando…</>:<><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#2563a8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Isométrico 3D</>}
+                  </button>
+                  <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:7,background:"transparent",border:"1.5px solid #EAE5DF",borderRadius:10,padding:"11px",color:"#a09888",fontSize:12,fontWeight:500,cursor:"pointer"}}>
+                    ← Nuevo análisis
+                  </button>
+                </div>
               </div>
-              <button onClick={()=>generarIsometrico(true)} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",letterSpacing:".02em"}}>
-                {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D<span style={{background:"rgba(255,255,255,.15)",borderRadius:100,padding:"2px 10px",fontSize:11,fontWeight:700,marginLeft:4}}>1 crédito</span></>}
-              </button>
-              {isoHtml&&(<div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a"}}><div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)"}}>MODELO 3D — {res.ubicacion?.zona}</span><button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button></div><iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/></div>)}
-              <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
-                ← Analizar con otro tipo de análisis
-              </button>
-              <button onClick={generarPDF} disabled={pdfLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:pdfLoading?"#d4cfc8":"linear-gradient(135deg,#1a1510 0%,#3a2e28 100%)",border:"1.5px solid #EAE5DF",borderRadius:12,padding:"15px 28px",width:"100%",color:pdfLoading?"#7a6f64":"#fff",fontSize:14,fontWeight:700,cursor:pdfLoading?"not-allowed":"pointer",boxShadow:"0 2px 12px rgba(0,0,0,.1)",transition:"all .2s",letterSpacing:".02em",marginTop:8}}>
-                {pdfLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando PDF…</>:<><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><polyline points="14,2 14,8 20,8" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round"/><polyline points="9,15 12,18 15,15" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Exportar Reporte PDF<span style={{fontSize:10,fontWeight:500,color:"rgba(255,255,255,.45)",marginLeft:4}}>unearth</span></>}
-              </button>
             </div>
           )}
         </div>
