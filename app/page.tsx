@@ -1350,7 +1350,7 @@ export default function Page(){
               <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
                 <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
                   <img
-                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=17&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
+                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=13&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
                     style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
                     alt="Vista satelital"
                     referrerPolicy="no-referrer-when-downgrade"
@@ -1387,7 +1387,7 @@ export default function Page(){
               <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
                 <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
                   <img
-                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=17&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
+                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=13&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
                     style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
                     alt="Vista satelital"
                     referrerPolicy="no-referrer-when-downgrade"
@@ -1425,7 +1425,7 @@ export default function Page(){
               <Header/>{res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
                 <div style={{position:"relative",borderRadius:16,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.12)",border:"1px solid rgba(255,255,255,.6)"}}>
                   <img
-                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=17&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
+                    src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=13&size=1400x400&maptype=satellite&markers=color:0x2563a8%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
                     style={{width:"100%",height:200,objectFit:"cover",display:"block"}}
                     alt="Vista satelital"
                     referrerPolicy="no-referrer-when-downgrade"
