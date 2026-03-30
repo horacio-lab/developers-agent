@@ -700,6 +700,10 @@ export default function Page(){
       if(bgEl2) bgEl2.style.display = 'none';
 
       // ── Step 4: Capture the full page ───────────────────────────
+     // Scroll al top para que html2canvas capture desde el inicio
+      window.scrollTo(0,0);
+      await new Promise(r=>setTimeout(r,120));
+
       const canvas=await html2canvas(el,{
         scale:2,
         useCORS:true,
@@ -707,15 +711,12 @@ export default function Page(){
         backgroundColor:"#ffffff",
         logging:false,
         windowWidth:1100,
-        height:el.scrollHeight,
-        scrollY:0,
-        x:0,
-        y:0,
+        windowHeight:el.scrollHeight,
         onclone:(clonedDoc: Document)=>{
           // Mostrar membrete
           const membrete = clonedDoc.getElementById("pdf-membrete");
           if(membrete) membrete.style.display = "flex";
-          // Ocultar nav sticky (no tiene sentido en PDF)
+          // Ocultar nav sticky
           const nav = clonedDoc.querySelector("header");
           if(nav) (nav as HTMLElement).style.display = "none";
           // Expandir listas con overflow
