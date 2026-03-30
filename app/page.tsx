@@ -1889,7 +1889,7 @@ const [feedbackSending, setFeedbackSending] = useState(false);
       onClick={()=>setShowFeedback(true)}
       style={{position:"fixed",bottom:28,right:24,zIndex:55,
         display:"flex",alignItems:"center",gap:8,
-        background:"rgba(255,255,255,.15)",
+        background:"rgba(0, 0, 0, 0.15)",
         backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",
         border:"1px solid rgba(255,255,255,.3)",
         borderRadius:100,padding:"10px 18px",
