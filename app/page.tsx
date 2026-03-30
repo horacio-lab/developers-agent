@@ -1333,7 +1333,7 @@ export default function Page(){
                   </div>
                 </div>
               </div>
-              {res.lineamientos&&<><div className="sec-hdr" style={{borderColor:BLUE}}><div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos del terreno (solo referencia)</div></div><LineamientosBlock/></>}
+              {res.lineamientos&&<><div className="sec-hdr" style={{borderColor:BLUE}}><div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos del terreno (solo referencia)</div></div>{LineamientosBlock()}</>}
             </div>
           )}
 
@@ -1341,7 +1341,7 @@ export default function Page(){
           {res&&!loading&&res.tipo_analisis==="lineamientos"&&(
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
               <Header/>
-              <LineamientosBlock/>
+              {LineamientosBlock()}
               <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
                 ← Analizar con otro tipo de análisis
               </button>
@@ -1355,12 +1355,12 @@ export default function Page(){
           {res&&!loading&&res.tipo_analisis==="mercado"&&(
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
               <Header/>
-              <MercadoChartsBlock/>
-              <MercadoComercialBlock/>
+              {MercadoChartsBlock()}
+              {MercadoComercialBlock()}
               <div className="sec-hdr" style={{borderColor:BLUE,marginTop:8}}>
                 <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>Lineamientos y Giros Permitidos</div>
               </div>
-              <LineamientosBlock/>
+              {LineamientosBlock()}
               <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
                 ← Analizar con otro tipo de análisis
               </button>
@@ -1383,7 +1383,7 @@ export default function Page(){
               <div className="sec-hdr" style={{borderColor:BLUE}}>
                 <div style={{fontSize:11,fontWeight:700,color:BLUE,letterSpacing:".08em",textTransform:"uppercase" as const}}>1 · Lineamientos Urbanísticos y Giros</div>
               </div>
-              <LineamientosBlock/>
+              {LineamientosBlock()}
               {res.analisis?.viabilidad_tecnica?.retos_constructivos?.length>0&&(
                 <div className="card">
                   <div className="lbl" style={{marginBottom:10}}>Retos constructivos</div>
@@ -1417,8 +1417,8 @@ export default function Page(){
               <div className="sec-hdr" style={{borderColor:AMBER,marginTop:8}}>
                 <div style={{fontSize:11,fontWeight:700,color:AMBER,letterSpacing:".08em",textTransform:"uppercase" as const}}>2 · Estudio de Mercado</div>
               </div>
-              <MercadoChartsBlock/>
-              <MercadoComercialBlock/>
+              {MercadoChartsBlock()}
+              {MercadoComercialBlock()}
               {res.analisis?.entorno_y_urbanismo&&(
                 <div className="card">
                   <div className="lbl" style={{marginBottom:10}}>Entorno y Urbanismo</div>
