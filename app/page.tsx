@@ -601,8 +601,14 @@ export default function Page(){
     </div>
   );
 
-  async function generarIsometrico() {
-    if(!res||!res.analisis) return;
+  async function generarIsometrico(cobrarCredito = false) {
+    if(!res||!res.lineamientos) return;
+    if(cobrarCredito){
+      if(!userSession?.access_token){setShowLoginModal(true);return;}
+      if(!creditos||creditos<1){setShowNoCreditsModal(true);return;}
+      await supabase.from("profiles").update({creditos:creditos-1}).eq("id",userSession.user.id);
+      setCreditos(prev=>(prev??1)-1);
+    }
     setIsoLoading(true);
     setIsoHtml(null);
     try {
@@ -1342,6 +1348,10 @@ export default function Page(){
             <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
               <Header/>
               {LineamientosBlock()}
+              <button onClick={()=>generarIsometrico(true)} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",letterSpacing:".02em"}}>
+                {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D<span style={{background:"rgba(255,255,255,.15)",borderRadius:100,padding:"2px 10px",fontSize:11,fontWeight:700,marginLeft:4}}>1 crédito</span></>}
+              </button>
+              {isoHtml&&(<div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a"}}><div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)"}}>MODELO 3D — {res.ubicacion?.zona}</span><button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button></div><iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/></div>)}
               <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
                 ← Analizar con otro tipo de análisis
               </button>
@@ -1512,7 +1522,7 @@ export default function Page(){
                 </div>
               )}
               <div style={{marginTop:24,display:"flex",flexDirection:"column" as const,gap:16}}>
-                <button onClick={generarIsometrico} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",transition:"all .2s",letterSpacing:".02em"}}>
+                <button onClick={()=>generarIsometrico()} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",transition:"all .2s",letterSpacing:".02em"}}>
                   {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D del Terreno</>}
                 </button>
                 {isoHtml&&(
@@ -1535,6 +1545,10 @@ export default function Page(){
                   </div>
                 )}
               </div>
+              <button onClick={()=>generarIsometrico(true)} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",letterSpacing:".02em"}}>
+                {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D<span style={{background:"rgba(255,255,255,.15)",borderRadius:100,padding:"2px 10px",fontSize:11,fontWeight:700,marginLeft:4}}>1 crédito</span></>}
+              </button>
+              {isoHtml&&(<div style={{borderRadius:16,overflow:"hidden",border:"1px solid #EAE5DF",background:"#0a0f1a"}}><div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.08)",display:"flex",alignItems:"center",justifyContent:"space-between"}}><span style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,.5)"}}>MODELO 3D — {res.ubicacion?.zona}</span><button onClick={()=>setIsoHtml(null)} style={{background:"rgba(255,255,255,.08)",border:"none",borderRadius:6,padding:"4px 10px",color:"rgba(255,255,255,.5)",fontSize:11,cursor:"pointer"}}>✕</button></div><iframe ref={iframeRef} srcDoc={isoHtml} style={{width:"100%",height:500,border:"none",display:"block"}} title="Isométrico 3D" sandbox="allow-scripts"/></div>)}
               <button onClick={()=>setRes(null)} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:"transparent",border:"1.5px solid #2563a8",borderRadius:12,padding:"13px 28px",width:"100%",color:"#2563a8",fontSize:14,fontWeight:600,cursor:"pointer",letterSpacing:".02em",marginTop:4}}>
                 ← Analizar con otro tipo de análisis
               </button>
