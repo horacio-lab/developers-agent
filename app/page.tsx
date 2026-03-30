@@ -660,8 +660,7 @@ export default function Page(){
 
     try{
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js");
-      const {jsPDF}=(window as any).jspdf;
-      const html2canvas=(window as any).html2canvas;
+     
 
       const el=document.getElementById("results-container");
       if(!el){alert("No hay reporte que exportar.");return;}
