@@ -1898,9 +1898,9 @@ const [feedbackSending, setFeedbackSending] = useState(false);
         animation:"floatBtn 3s ease-in-out infinite",
       }}>
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
-        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#1a1510" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
-      <span style={{fontSize:12,fontWeight:700,color:"#1a1510",letterSpacing:".02em"}}>Sugerencias</span>
+      <span style={{fontSize:12,fontWeight:700,color:"#FFFFFF",letterSpacing:".02em"}}>Sugerencias</span>
     </button>
 
     {/* ════ MODAL SUGERENCIAS ════ */}
