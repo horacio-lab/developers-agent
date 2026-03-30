@@ -312,9 +312,13 @@ const [feedbackSending, setFeedbackSending] = useState(false);
       const d=await r.json();
       if(d.necesita_producto){setErr("Indica qué quieres construir.");setLoading(false);return;}
       if(d.error==="sin_creditos"||d.creditos_disponibles===0){
-        setLoading(false); setShowNoCreditsModal(true); return;
-      }
-      if(d.error_uso_suelo){
+  setLoading(false); setShowNoCreditsModal(true); return;
+}
+if(d.error==="fuera_de_cobertura"){
+  setErr("📍 Esta dirección está fuera de Monterrey. Seguimos trabajando para cubrir más territorio — por favor ingresa una dirección en el municipio de Monterrey.");
+  setLoading(false); return;
+}
+if(d.error_uso_suelo){
         if(d.lineamientos) setRes({...d, ok:true, tipo_analisis:"error_uso_suelo", tipo_analisis_real: tipo});
         else setErr(d.error);
         setLoading(false);return;
