@@ -1214,7 +1214,7 @@ const [feedbackSending, setFeedbackSending] = useState(false);
             <div className="g3" style={{marginBottom:14}}>
               <div style={{gridColumn:"1/-1"}}>
                 <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>Dirección del terreno</label>
-                <input className="fg" value={dir} onChange={e=>setDir(e.target.value)} disabled={loading} placeholder="Ej: Mitla 418, Mitras Norte, Monterrey"/>
+                <input className="fg" value={dir} onChange={e=>setDir(e.target.value)} disabled={loading} placeholder="Ingresa una dirección en Monterrey"/>
               </div>
               <div>
                 <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>Superficie m²</label>
