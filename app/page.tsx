@@ -1640,73 +1640,76 @@ export default function Page(){
 
     {/* ════ MODAL PAQUETES MERCADO PAGO — NUEVO ════ */}
     {showPaquetesModal&&(
-      <>
-        <div onClick={()=>{if(!comprando)setShowPaquetesModal(false);}} className="overlay-fade" style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.55)",backdropFilter:"blur(5px)"}}/>
-        <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,width:"min(480px,93vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",background:"rgba(250,247,244,.98)",backdropFilter:"blur(24px)",borderRadius:24,padding:"34px 28px",boxShadow:"0 24px 80px rgba(0,0,0,.3)",border:"1px solid rgba(234,229,223,.9)"}}>
-          <div style={{textAlign:"center" as const,marginBottom:22}}>
-            <div style={{fontSize:32,marginBottom:8}}>💳</div>
-            <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:26,color:"#1a1510",marginBottom:5}}>Comprar créditos</div>
-            <p style={{fontSize:13,color:"#7a6f64"}}>Elige el paquete que mejor se adapte a ti. Pago seguro con Mercado Pago.</p>
-          </div>
-          <div style={{display:"flex",flexDirection:"column" as const,gap:10,marginBottom:18}}>
-            {([
-              {paquete:"3"  as const, precio:"$199",   cr:3,  label:"Starter", desc:"1 análisis completo",       col:"#5ea8f0"},
-              {paquete:"10" as const, precio:"$499",   cr:10, label:"Pro",     desc:"3 análisis completos",      col:"#34d399"},
-              {paquete:"25" as const, precio:"$999",   cr:25, label:"Studio",  desc:"8 análisis — más popular",  col:AMBER, best:true},
-              {paquete:"60" as const, precio:"$1,999", cr:60, label:"Firma",   desc:"20 análisis para equipos",  col:"#a78bfa"},
-            ]).map(p=>(
-              <button key={p.paquete}
-                onClick={()=>comprarCreditos(p.paquete)}
-                disabled={comprando}
-                style={{
-                  background:p.best?"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)":"rgba(255,255,255,.85)",
-                  border:p.best?"2px solid transparent":`1.5px solid #EAE5DF`,
-                  borderRadius:14,padding:"14px 18px",cursor:comprando?"not-allowed":"pointer",
-                  display:"flex",alignItems:"center",justifyContent:"space-between",
-                  transition:"all .2s",opacity:comprando?.6:1,
-                  boxShadow:p.best?"0 4px 20px rgba(37,99,168,.2)":"none",
-                }}>
-                <div style={{textAlign:"left" as const}}>
-                  <div style={{fontSize:13,fontWeight:700,color:p.best?"#fff":"#1a1510",display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
-                    <span style={{width:8,height:8,borderRadius:"50%",background:p.col,display:"inline-block",flexShrink:0,boxShadow:`0 0 6px ${p.col}`}}/>
-                    {p.label}
-                    {p.best&&<span style={{fontSize:9,background:"rgba(255,255,255,.15)",borderRadius:20,padding:"2px 8px",color:"rgba(255,255,255,.85)",fontWeight:700,letterSpacing:".06em"}}>MÁS POPULAR</span>}
-                  </div>
-                  <div style={{fontSize:11,color:p.best?"rgba(255,255,255,.55)":"#a09888",paddingLeft:16}}>{p.desc}</div>
-                </div>
-                <div style={{textAlign:"right" as const,flexShrink:0,marginLeft:16}}>
-                  <div style={{fontSize:20,fontWeight:700,color:p.best?"#fff":"#1a1510",lineHeight:1}}>{p.precio}</div>
-                  <div style={{fontSize:11,color:p.best?"rgba(255,255,255,.45)":"#a09888"}}>{p.cr} créditos</div>
-                </div>
-              </button>
-            ))}
-          </div>
+  <>
+    <div onClick={()=>{if(!comprando)setShowPaquetesModal(false);}} className="overlay-fade"
+      style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.55)",backdropFilter:"blur(5px)"}}/>
+    <div style={{position:"fixed",top:"50%",left:"50%",transform:"translate(-50%,-50%)",zIndex:70,
+      width:"min(400px,92vw)",animation:"modalIn .25s cubic-bezier(.16,1,.3,1) both",
+      background:"rgba(250,247,244,.98)",backdropFilter:"blur(24px)",
+      borderRadius:24,padding:"34px 28px",
+      boxShadow:"0 24px 80px rgba(0,0,0,.3)",
+      border:"1px solid rgba(234,229,223,.9)"}}>
 
-          {comprando&&(
-            <div style={{textAlign:"center" as const,padding:"10px 0",marginBottom:8}}>
-              <div style={{display:"inline-flex",alignItems:"center",gap:10,background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,padding:"10px 18px"}}>
-                <div style={{width:14,height:14,border:"2px solid #93c5fd",borderTopColor:BLUE,borderRadius:"50%",animation:"spin .7s linear infinite"}}/>
-                <span style={{fontSize:13,fontWeight:600,color:BLUE}}>Redirigiendo a Mercado Pago…</span>
-              </div>
-            </div>
-          )}
-
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:14}}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <span style={{fontSize:11,color:"#7a6f64"}}>Pago seguro · Sin suscripción · Los créditos no expiran</span>
-          </div>
-
-          {!comprando&&(
-            <button onClick={()=>setShowPaquetesModal(false)} style={{width:"100%",padding:"10px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"transparent",color:"#7a6f64",fontSize:13,cursor:"pointer"}}>
-              Cancelar
-            </button>
-          )}
-          {!comprando&&(
-            <button onClick={()=>setShowPaquetesModal(false)} style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
-          )}
+      <div style={{textAlign:"center" as const,marginBottom:24}}>
+        <div style={{fontSize:32,marginBottom:8}}>💳</div>
+        <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:26,color:"#1a1510",marginBottom:5}}>
+          Comprar créditos
         </div>
-      </>
-    )}
+        <p style={{fontSize:13,color:"#7a6f64"}}>
+          Pago seguro con Mercado Pago
+        </p>
+      </div>
+
+      {/* Único paquete */}
+      <div style={{background:"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",borderRadius:16,padding:"24px 22px",marginBottom:20,textAlign:"center" as const}}>
+        <div style={{fontSize:11,fontWeight:700,letterSpacing:".1em",color:"rgba(255,255,255,.5)",marginBottom:6}}>PAQUETE INICIO</div>
+        <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:44,color:"#fff",lineHeight:1,marginBottom:4}}>$199
+          <span style={{fontSize:16,fontWeight:400,opacity:.6}}> MXN</span>
+        </div>
+        <div style={{fontSize:13,color:"rgba(255,255,255,.6)",marginBottom:16}}>3 créditos · 1 análisis completo</div>
+        <div style={{display:"flex",flexDirection:"column" as const,gap:6,marginBottom:18}}>
+          {[
+            {t:"Lineamientos urbanísticos",c:"1 crédito",col:"#5ea8f0"},
+            {t:"Estudio de mercado",c:"2 créditos",col:"#d97706"},
+            {t:"Análisis completo",c:"3 créditos",col:"#22c55e"},
+          ].map(x=>(
+            <div key={x.t} style={{background:"rgba(255,255,255,.08)",borderRadius:8,padding:"8px 12px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <span style={{fontSize:11,color:"rgba(255,255,255,.65)"}}>{x.t}</span>
+              <span style={{fontSize:11,fontWeight:700,color:x.col}}>{x.c}</span>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={()=>comprarCreditos("3")}
+          disabled={comprando}
+          style={{width:"100%",background:comprando?"rgba(255,255,255,.1)":"rgba(255,255,255,.15)",border:"1.5px solid rgba(255,255,255,.25)",borderRadius:12,padding:"13px",color:"#fff",fontSize:15,fontWeight:700,cursor:comprando?"not-allowed":"pointer",letterSpacing:".02em",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+          {comprando
+            ?<><div style={{width:14,height:14,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>Redirigiendo…</>
+            :"Comprar ahora →"}
+        </button>
+      </div>
+
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:14}}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#15803d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span style={{fontSize:11,color:"#a09888"}}>Sin suscripción · Los créditos no expiran</span>
+      </div>
+
+      {!comprando&&(
+        <button onClick={()=>setShowPaquetesModal(false)}
+          style={{width:"100%",padding:"10px",borderRadius:12,border:"1.5px solid #EAE5DF",background:"transparent",color:"#7a6f64",fontSize:13,cursor:"pointer"}}>
+          Cancelar
+        </button>
+      )}
+      {!comprando&&(
+        <button onClick={()=>setShowPaquetesModal(false)}
+          style={{position:"absolute" as const,top:16,right:16,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:28,height:28,cursor:"pointer",fontSize:14,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕
+        </button>
+      )}
+    </div>
+  </>
+)}
 
     {/* ════ SIDEBAR ════ */}
     {sidebarOpen&&(
