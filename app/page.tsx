@@ -994,6 +994,13 @@ export default function Page(){
           </div>
         ))}
       </div>
+      {res?.ubicacion?.lat&&res?.ubicacion?.lng&&(
+        <img
+          src={`https://maps.googleapis.com/maps/api/staticmap?center=${res.ubicacion.lat},${res.ubicacion.lng}&zoom=19&size=1200x400&maptype=satellite&markers=color:red%7C${res.ubicacion.lat},${res.ubicacion.lng}&key=${process.env.NEXT_PUBLIC_GMAPS_STATIC_KEY}`}
+          style={{width:"100%",height:220,objectFit:"cover",borderRadius:"0 0 12px 12px",display:"block",marginTop:14}}
+          alt="Vista satelital"
+        />
+      )}
     </div>
   );
 
