@@ -612,9 +612,9 @@ export default function Page(){
     setIsoLoading(true);
     setIsoHtml(null);
     try {
-      const vt  = res.analisis.viabilidad_tecnica||{};
+      const vt  = res?.analisis?.viabilidad_tecnica||{};
       const lin = res.lineamientos||{};
-      const fin = res.analisis.financiero||{};
+      const fin = res?.analisis?.financiero||{};
       const m2     = res.terreno?.metros2||300;
       const cos    = parseFloat(lin.cos)||0.6;
       const cus    = parseFloat(lin.cus)||2.4;
