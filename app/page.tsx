@@ -210,6 +210,10 @@ export default function Page(){
   const iframeRef=useRef<HTMLIFrameElement>(null);
   const [res,setRes]=useState<any>(null); const [err,setErr]=useState("");
   const needsProd=tipo==="mercado"||tipo==="completo";
+  const [showFeedback, setShowFeedback] = useState(false);
+const [feedbackMsg, setFeedbackMsg] = useState("");
+const [feedbackSent, setFeedbackSent] = useState(false);
+const [feedbackSending, setFeedbackSending] = useState(false);
 
   // ── Auth + restaurar form pendiente ──
   useEffect(()=>{
@@ -438,6 +442,22 @@ export default function Page(){
     const idx=keys.findIndex(k=>d.includes(k)||k.includes(d));
     return idx>=0?idx:0;
   }
+  async function enviarFeedback(){
+  if(!feedbackMsg.trim()) return;
+  setFeedbackSending(true);
+  try{
+    await supabase.from("feedback").insert({
+      mensaje: feedbackMsg.trim(),
+      email: userSession?.user?.email || null,
+      url: window.location.href,
+      created_at: new Date().toISOString(),
+    });
+    setFeedbackSent(true);
+    setFeedbackMsg("");
+    setTimeout(()=>{ setFeedbackSent(false); setShowFeedback(false); }, 2500);
+  }catch(e){ alert("Error al enviar. Intenta de nuevo."); }
+  finally{ setFeedbackSending(false); }
+}
 
   const GIROS_PARK=[
     {codigo:"1.1.2",label:"Multifamiliar (departamentos)",unidad:"viviendas"},
@@ -1002,6 +1022,8 @@ export default function Page(){
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&display=swap');
       *{box-sizing:border-box;margin:0;padding:0;}
+      @keyframes floatBtn{0%,100%{transform:translateY(0);box-shadow:0 8px 32px rgba(0,0,0,.2)}50%{transform:translateY(-5px);box-shadow:0 14px 40px rgba(0,0,0,.25)}}
+@keyframes slideUpModal{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
       html,body{background:#F5F2EE;color:#1a1510;font-family:'Inter',-apple-system,sans-serif;}
       input,select,button{font-family:inherit;}
       input::placeholder{color:#b0a898;}
@@ -1859,6 +1881,70 @@ export default function Page(){
               Cerrar sesión
             </button>
           </div>
+        </div>
+      </>
+    )}
+    {/* ════ BOTÓN FLOTANTE SUGERENCIAS ════ */}
+    <button
+      onClick={()=>setShowFeedback(true)}
+      style={{position:"fixed",bottom:28,right:24,zIndex:55,
+        display:"flex",alignItems:"center",gap:8,
+        background:"rgba(255,255,255,.15)",
+        backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",
+        border:"1px solid rgba(255,255,255,.3)",
+        borderRadius:100,padding:"10px 18px",
+        boxShadow:"0 8px 32px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.2)",
+        cursor:"pointer",
+        animation:"floatBtn 3s ease-in-out infinite",
+      }}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#1a1510" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+      <span style={{fontSize:12,fontWeight:700,color:"#1a1510",letterSpacing:".02em"}}>Sugerencias</span>
+    </button>
+
+    {/* ════ MODAL SUGERENCIAS ════ */}
+    {showFeedback&&(
+      <>
+        <div onClick={()=>{if(!feedbackSending)setShowFeedback(false);}} className="overlay-fade"
+          style={{position:"fixed",inset:0,zIndex:60,background:"rgba(0,0,0,.4)",backdropFilter:"blur(4px)"}}/>
+        <div style={{position:"fixed",bottom:80,right:24,zIndex:70,
+          width:"min(360px,92vw)",
+          animation:"slideUpModal .3s cubic-bezier(.16,1,.3,1) both",
+          background:"rgba(250,247,244,.92)",
+          backdropFilter:"blur(32px)",WebkitBackdropFilter:"blur(32px)",
+          borderRadius:20,padding:"28px 24px",
+          boxShadow:"0 24px 60px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.6)",
+          border:"1px solid rgba(234,229,223,.9)"}}>
+          <button onClick={()=>setShowFeedback(false)}
+            style={{position:"absolute" as const,top:14,right:14,background:"rgba(0,0,0,.06)",border:"none",borderRadius:8,width:26,height:26,cursor:"pointer",fontSize:13,color:"#7a6f64",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          {feedbackSent?(
+            <div style={{textAlign:"center" as const,padding:"16px 0"}}>
+              <div style={{fontSize:32,marginBottom:10}}>🙌</div>
+              <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:20,color:"#1a1510",marginBottom:6}}>¡Gracias!</div>
+              <p style={{fontSize:13,color:"#7a6f64"}}>Tu sugerencia fue enviada.</p>
+            </div>
+          ):(
+            <>
+              <div style={{marginBottom:16}}>
+                <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:20,color:"#1a1510",marginBottom:4}}>¿Cómo podemos mejorar?</div>
+                <p style={{fontSize:12,color:"#a09888",lineHeight:1.5}}>Bugs, ideas, funciones que te gustaría ver — todo ayuda.</p>
+              </div>
+              <textarea
+                value={feedbackMsg}
+                onChange={e=>setFeedbackMsg(e.target.value)}
+                placeholder="Escribe tu sugerencia aquí…"
+                rows={4}
+                style={{width:"100%",background:"rgba(255,255,255,.8)",border:"1.5px solid #EAE5DF",borderRadius:12,padding:"12px 14px",fontSize:13,color:"#1a1510",outline:"none",resize:"none" as const,fontFamily:"inherit",lineHeight:1.6,boxSizing:"border-box" as const}}
+              />
+              <button
+                onClick={enviarFeedback}
+                disabled={feedbackSending||!feedbackMsg.trim()}
+                style={{marginTop:10,width:"100%",background:feedbackSending||!feedbackMsg.trim()?"#e8e3dd":"#1a1510",border:"none",borderRadius:12,padding:"13px",color:feedbackSending||!feedbackMsg.trim()?"#a09888":"#fff",fontSize:13,fontWeight:700,cursor:feedbackSending||!feedbackMsg.trim()?"not-allowed":"pointer",letterSpacing:".02em",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                {feedbackSending?<><div style={{width:13,height:13,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/>Enviando…</>:"Enviar sugerencia →"}
+              </button>
+            </>
+          )}
         </div>
       </>
     )}
