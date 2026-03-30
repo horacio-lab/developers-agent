@@ -1366,7 +1366,7 @@ export default function Page(){
                     </div>
                   </div>
                 </div>
-              )}  <LineamientosBlock/>
+              )}
               {LineamientosBlock()}
               <button onClick={()=>generarIsometrico(true)} disabled={isoLoading} style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,background:isoLoading?"#d4cfc8":"linear-gradient(135deg,#0f2240 0%,#1a4d8a 60%,#1a7a8a 100%)",border:"none",borderRadius:12,padding:"15px 28px",width:"100%",color:"#fff",fontSize:14,fontWeight:700,cursor:isoLoading?"not-allowed":"pointer",boxShadow:"0 4px 20px rgba(37,99,168,.25)",letterSpacing:".02em"}}>
                 {isoLoading?<><div style={{width:16,height:16,border:"2px solid rgba(255,255,255,.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin .7s linear infinite"}}/> Generando modelo 3D…</>:<><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#5ea8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>Ver Isométrico 3D<span style={{background:"rgba(255,255,255,.15)",borderRadius:100,padding:"2px 10px",fontSize:11,fontWeight:700,marginLeft:4}}>1 crédito</span></>}
