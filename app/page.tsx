@@ -2,8 +2,8 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-const API = "https://lojqmvpzdhayekzgwazw.supabase.co/functions/v1/analizar_terreno";
-const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxvanFtdnB6ZGhheWVremd3YXp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MzUsImV4cCI6MjA4OTcxMDUzNX0.CZpREN5V1i1D8TSNrdmGR0of4F_DuS6EqU9AE9a_eog";
+const API = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/analizar_terreno`;
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 type Tipo = "lineamientos"|"mercado"|"completo";
 
 const $   = (n:any,m="c")=>n!=null&&!isNaN(+n)?(m==="c"?new Intl.NumberFormat("es-MX",{style:"currency",currency:"MXN",maximumFractionDigits:0}).format(+n):new Intl.NumberFormat("es-MX",{maximumFractionDigits:0}).format(+n)):"—";
