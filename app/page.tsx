@@ -719,6 +719,20 @@ export default function Page(){
           // Ocultar nav sticky
           const nav = clonedDoc.querySelector("header");
           if(nav) (nav as HTMLElement).style.display = "none";
+          // Matar todas las animaciones y dejar elementos visibles
+          const styleKill = clonedDoc.createElement("style");
+          styleKill.textContent = `
+            *{
+              animation:none !important;
+              animation-delay:0ms !important;
+              animation-duration:0ms !important;
+              transition:none !important;
+              opacity:1 !important;
+              transform:none !important;
+            }
+          `;
+          clonedDoc.head.appendChild(styleKill);
+
           // Expandir listas con overflow
           clonedDoc.querySelectorAll('[style*="overflow"]').forEach((node)=>{
             const el2 = node as HTMLElement;
