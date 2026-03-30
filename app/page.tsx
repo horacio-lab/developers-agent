@@ -712,7 +712,13 @@ export default function Page(){
         x:0,
         y:0,
         onclone:(clonedDoc: Document)=>{
-          // In the cloned doc, make giros lists expand fully
+          // Mostrar membrete
+          const membrete = clonedDoc.getElementById("pdf-membrete");
+          if(membrete) membrete.style.display = "flex";
+          // Ocultar nav sticky (no tiene sentido en PDF)
+          const nav = clonedDoc.querySelector("header");
+          if(nav) (nav as HTMLElement).style.display = "none";
+          // Expandir listas con overflow
           clonedDoc.querySelectorAll('[style*="overflow"]').forEach((node)=>{
             const el2 = node as HTMLElement;
             if(el2.style.overflowY==='auto'||el2.style.overflowY==='scroll'){
@@ -1547,6 +1553,22 @@ export default function Page(){
 
       {/* ══ ERROR USO DE SUELO HU ══ */}
       <div id="results-container" style={{paddingBottom:8,width:"100%",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
+
+      {/* ── MEMBRETE PDF — oculto en pantalla, visible al exportar ── */}
+      <div id="pdf-membrete" style={{display:"none",background:"#fff",borderBottom:"2px solid #EAE5DF",padding:"20px 28px 18px",marginBottom:24,alignItems:"center",justifyContent:"space-between",gap:16}}>
+        <img src="/LOGO LETRAS BLACK.png" alt="unearth" style={{height:30,width:"auto",flexShrink:0}}/>
+        <div style={{flex:1,paddingLeft:20,borderLeft:"1px solid #EAE5DF"}}>
+          <div style={{fontSize:14,fontWeight:700,color:"#1a1510",lineHeight:1.3}}>{res?.ubicacion?.direccion}</div>
+          <div style={{fontSize:11,color:"#7a6f64",marginTop:3}}>
+            {res?.tipo_analisis==="lineamientos"?"Lineamientos Urbanísticos":res?.tipo_analisis==="mercado"?"Estudio de Mercado":"Análisis Completo"}
+            {res?.ubicacion?.distrito&&<> · {res.ubicacion.distrito}{res?.ubicacion?.delegacion&&`, ${res.ubicacion.delegacion}`}</>}
+          </div>
+        </div>
+        <div style={{textAlign:"right" as const,flexShrink:0}}>
+          <div style={{fontSize:12,fontWeight:600,color:"#1a1510"}}>{userSession?.user?.user_metadata?.full_name||userSession?.user?.email?.split("@")[0]||"—"}</div>
+          <div style={{fontSize:11,color:"#a09888",marginTop:2}}>{new Date().toLocaleDateString("es-MX",{day:"2-digit",month:"long",year:"numeric"})}</div>
+        </div>
+      </div>
       {res&&!loading&&res.tipo_analisis==="error_uso_suelo"&&(
         <div className="up" style={{display:"flex",flexDirection:"column",gap:14}}>
           <Header/>
