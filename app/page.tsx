@@ -655,16 +655,21 @@ export default function Page(){
   async function generarPDF(){
     if(!res)return;
     setPdfLoading(true);
+
+    // Temp image element that replaces the iframe for html2canvas
     let isoImg:HTMLImageElement|null=null;
     const iframeEl=iframeRef.current;
 
     try{
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js");
-     
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
+      const {jsPDF}=(window as any).jspdf;
+      const html2canvas=(window as any).html2canvas;
 
       const el=document.getElementById("results-container");
       if(!el){alert("No hay reporte que exportar.");return;}
 
+      // ── Step 1: Get isometric snapshot via postMessage ──────────
       if(iframeEl&&isoHtml){
         const isoData=await new Promise<string|null>((resolve)=>{
           const handler=(e:MessageEvent)=>{
@@ -677,6 +682,8 @@ export default function Page(){
           iframeEl.contentWindow?.postMessage("unearta_capture","*");
           setTimeout(()=>{window.removeEventListener("message",handler);resolve(null);},3500);
         });
+
+        // ── Step 2: Replace iframe with <img> so html2canvas can see it
         if(isoData&&iframeEl.parentElement){
           isoImg=document.createElement("img");
           isoImg.src=isoData;
@@ -686,56 +693,72 @@ export default function Page(){
         }
       }
 
-      const bgEl=document.querySelector('[style*="position: fixed"][style*="pointer-events: none"]') as HTMLElement;
-      const bgEl2=document.querySelector('[style*="position:fixed"][style*="pointerEvents"]') as HTMLElement;
-      if(bgEl) bgEl.style.display='none';
-      if(bgEl2) bgEl2.style.display='none';
+      // ── Step 3: Hide fixed background during capture ─────────────
+      const bgEl = document.querySelector('[style*="position: fixed"][style*="pointer-events: none"]') as HTMLElement;
+      const bgEl2 = document.querySelector('[style*="position:fixed"][style*="pointerEvents"]') as HTMLElement;
+      if(bgEl) bgEl.style.display = 'none';
+      if(bgEl2) bgEl2.style.display = 'none';
 
+      // ── Step 4: Capture the full page ───────────────────────────
       window.scrollTo(0,0);
       await new Promise(r=>setTimeout(r,120));
 
+      const canvas=await html2canvas(el,{
+        scale:2,
+        useCORS:true,
+        allowTaint:true,
+        backgroundColor:"#ffffff",
+        logging:false,
+        windowWidth:1100,
+        windowHeight:el.scrollHeight,
+        onclone:(clonedDoc: Document)=>{
+          // Mostrar membrete
+          const membrete=clonedDoc.getElementById("pdf-membrete");
+          if(membrete) membrete.style.display="flex";
+          // Ocultar nav sticky
+          const nav=clonedDoc.querySelector("header");
+          if(nav)(nav as HTMLElement).style.display="none";
+          // Matar animaciones — fuerza todo visible
+          const styleKill=clonedDoc.createElement("style");
+          styleKill.textContent=`*{animation:none !important;animation-delay:0ms !important;animation-duration:0ms !important;transition:none !important;opacity:1 !important;transform:none !important;}`;
+          clonedDoc.head.appendChild(styleKill);
+          // Expandir listas con overflow
+          clonedDoc.querySelectorAll('[style*="overflow"]').forEach((node)=>{
+            const el2 = node as HTMLElement;
+            if(el2.style.overflowY==='auto'||el2.style.overflowY==='scroll'){
+              el2.style.maxHeight='none';
+              el2.style.overflowY='visible';
+            }
+          });
+        }
+      });
+
+      // ── Step 4: Restore background ──────────────────────────────
+      if(bgEl) bgEl.style.display = '';
+      if(bgEl2) bgEl2.style.display = '';
+
+      // ── Step 4: Build PDF pages ──────────────────────────────────
+      const imgData=canvas.toDataURL("image/jpeg",0.92);
+      const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      const margin=10; // 10mm margins
+      const W=210-margin*2, H=297;
+      const imgH=(canvas.height*W)/canvas.width;
+      let posY=margin;
+      let remaining=imgH;
+      while(remaining>0){
+        doc.addImage(imgData,"JPEG",margin,posY,W,imgH);
+        remaining-=(H-margin*2);
+        posY-=(H-margin*2);
+        if(remaining>0)doc.addPage();
+      }
+
       const fecha=new Date().toISOString().slice(0,10);
-      const dirNombre=(res.ubicacion?.direccion||"terreno").slice(0,30).replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,"_");
-
-      const opt={
-        margin:[10,10,10,10],
-        filename:`unearth_${dirNombre}_${fecha}.pdf`,
-        image:{type:"jpeg",quality:0.92},
-        html2canvas:{
-          scale:2,
-          useCORS:true,
-          allowTaint:true,
-          backgroundColor:"#ffffff",
-          windowWidth:1100,
-          windowHeight:el.scrollHeight,
-          onclone:(clonedDoc:Document)=>{
-            const membrete=clonedDoc.getElementById("pdf-membrete");
-            if(membrete) membrete.style.display="flex";
-            const nav=clonedDoc.querySelector("header");
-            if(nav)(nav as HTMLElement).style.display="none";
-            const styleKill=clonedDoc.createElement("style");
-            styleKill.textContent=`*{animation:none !important;animation-delay:0ms !important;animation-duration:0ms !important;transition:none !important;opacity:1 !important;transform:none !important;}`;
-            clonedDoc.head.appendChild(styleKill);
-            clonedDoc.querySelectorAll('[style*="overflow"]').forEach((node)=>{
-              const e2=node as HTMLElement;
-              if(e2.style.overflowY==='auto'||e2.style.overflowY==='scroll'){
-                e2.style.maxHeight='none';
-                e2.style.overflowY='visible';
-              }
-            });
-          }
-        },
-        jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
-        pagebreak:{mode:["avoid-all","css","legacy"]},
-      };
-
-      await (window as any).html2pdf().set(opt).from(el).save();
-
-      if(bgEl) bgEl.style.display='';
-      if(bgEl2) bgEl2.style.display='';
+      const dir=(res.ubicacion?.direccion||"terreno").slice(0,30).replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s]/g,"_");
+      doc.save(`unearth_${dir}_${fecha}.pdf`);
 
     }catch(err){console.error(err);alert("Error generando PDF. Intenta de nuevo.");}
     finally{
+      // ── Restore iframe ───────────────────────────────────────────
       if(isoImg){isoImg.remove();}
       if(iframeEl){iframeEl.style.display="block";}
       setPdfLoading(false);
