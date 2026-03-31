@@ -1,6 +1,10 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const API = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/analizar_terreno`;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -208,6 +212,10 @@ export default function Page(){
   const [tipIdx,setTipIdx]=useState(0);
   const [pdfLoading,setPdfLoading]=useState(false);
   const iframeRef=useRef<HTMLIFrameElement>(null);
+  const heroRef=useRef<HTMLDivElement>(null);
+  const resultsRef=useRef<HTMLDivElement>(null);
+  const semRef=useRef<HTMLDivElement>(null);
+  const finRef=useRef<HTMLDivElement>(null);
   const [res,setRes]=useState<any>(null); const [err,setErr]=useState("");
   const needsProd=tipo==="mercado"||tipo==="completo";
   const [showFeedback, setShowFeedback] = useState(false);
@@ -290,6 +298,55 @@ const [feedbackSending, setFeedbackSending] = useState(false);
     const iv=setInterval(()=>setTipIdx(i=>(i+1)%TIPS.length),4200);
     return()=>clearInterval(iv);
   },[loading]);
+
+  // ── GSAP 1: Hero entrance ──
+  useGSAP(()=>{
+    if(res||loading) return;
+    gsap.fromTo(".hero-animate",
+      {y:28,opacity:0},
+      {y:0,opacity:1,duration:0.7,stagger:0.11,ease:"power2.out",clearProps:"all"}
+    );
+  },{scope:heroRef,dependencies:[!!res,loading]});
+
+  // ── GSAP 2: Result cards ScrollTrigger.batch ──
+  useGSAP(()=>{
+    if(!res||loading) return;
+    const cards=resultsRef.current?.querySelectorAll(".result-card");
+    if(!cards||cards.length===0) return;
+    gsap.set(cards,{opacity:0,y:22});
+    ScrollTrigger.batch(".result-card",{
+      onEnter:(batch)=>gsap.to(batch,{opacity:1,y:0,stagger:0.09,duration:0.55,ease:"power2.out",overwrite:true}),
+      start:"top 93%",
+      once:true,
+    });
+    return()=>ScrollTrigger.getAll().forEach(t=>t.kill());
+  },{scope:resultsRef,dependencies:[res?.ubicacion?.direccion]});
+
+  // ── GSAP 3: Semáforo reveal ──
+  useGSAP(()=>{
+    if(!semFinal||!semRef.current) return;
+    gsap.fromTo(semRef.current,
+      {scale:0.3,opacity:0},
+      {scale:1,opacity:1,duration:0.9,ease:"back.out(1.7)",clearProps:"all"}
+    );
+  },{dependencies:[semFinal]});
+
+  // ── GSAP 4: Contadores financieros ──
+  useGSAP(()=>{
+    if(!finF||!finRef.current) return;
+    const animate=(selector:string,target:number,suffix:string)=>{
+      const el=finRef.current?.querySelector(`[data-metric="${selector}"]`);
+      if(!el||!target) return;
+      const obj={v:0};
+      gsap.to(obj,{
+        v:target,duration:1.4,ease:"power2.out",
+        onUpdate:()=>{el.textContent=obj.v.toFixed(1)+suffix;},
+      });
+    };
+    animate("tir",finF.tir_estimada_pct||0,"%");
+    animate("roi",finF.roi_pct||0,"%");
+    animate("margen",finF.margen_bruto_pct||0,"%");
+  },{dependencies:[finF?.tir_estimada_pct]});
 
   async function run(){
     if(!dir||!m2||!px){setErr("Completa todos los campos.");return;}
@@ -510,7 +567,7 @@ if(d.error_uso_suelo){
   /* ── LINEAMIENTOS BLOCK ── */
   const LineamientosBlock=()=>(
     <div style={{display:"flex",flexDirection:"column" as const,gap:14}}>
-      <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
+      <div className="result-card" style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px",boxShadow:"0 1px 3px rgba(0,0,0,.04)"}}>
         <div style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:C.light,marginBottom:14}}>Lineamientos Urbanísticos — PDU Monterrey 2013-2025</div>
         <div className="stagger" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(148px,1fr))",gap:12}}>
           {[
@@ -810,7 +867,7 @@ if(d.error_uso_suelo){
           </div>
         )}
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(min(280px,100%),1fr))",gap:14}}>
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+          <div className="result-card" style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>
               Precios de mercado — {mpData.tipo||prod} / m²
             </div>
@@ -828,7 +885,7 @@ if(d.error_uso_suelo){
               <span>Tendencia: <strong>{(mpData.tendencia||"").toUpperCase()}</strong></span>
             </div>
           </div>
-          <div style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
+          <div className="result-card" style={{background:C.white,border:`1px solid ${C.border}`,borderRadius:14,padding:"20px 24px"}}>
             <div style={{fontSize:10,fontWeight:700,color:C.light,letterSpacing:".09em",textTransform:"uppercase" as const,marginBottom:12}}>Tipologías del mercado</div>
             {tipos.length>0?(
               <>
@@ -1160,7 +1217,7 @@ if(d.error_uso_suelo){
         HERO
     ════════════════════════════════════════════ */}
     {!res&&!loading&&(
-      <div style={{position:"relative",minHeight:"100vh",overflow:"hidden",display:"flex",flexDirection:"column" as const}}>
+      <div ref={heroRef} style={{position:"relative",minHeight:"100vh",overflow:"hidden",display:"flex",flexDirection:"column" as const}}>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(160deg, #0a1628 0%, #0f2240 40%, #0d2d3a 70%, #0a1e28 100%)"}}>
           <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity:.18}} xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -1206,15 +1263,15 @@ if(d.error_uso_suelo){
         </nav>
         <div style={{flex:1,display:"flex",flexDirection:"column" as const,alignItems:"center",justifyContent:"center",padding:"0 24px 32px",position:"relative",zIndex:10}}>
           <div style={{marginBottom:4,position:"relative"}}>
-            <img src="/LOGO SIMBOLO WHITE.png" alt="" className="mob-symbol hero-symbol" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
+            <img src="/LOGO SIMBOLO WHITE.png" alt="" className="mob-symbol hero-symbol hero-animate" style={{width:120,height:120,objectFit:"contain",filter:"drop-shadow(0 0 28px rgba(94,168,240,.75))",display:"block"}}/>
           </div>
-          <h2 className="mob-h2" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(26px,3.5vw,48px)",lineHeight:1.1,color:"#fff",marginBottom:10,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
+          <h2 className="mob-h2 hero-animate" style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:"clamp(26px,3.5vw,48px)",lineHeight:1.1,color:"#fff",marginBottom:10,fontWeight:400,textAlign:"center" as const,textShadow:"0 2px 40px rgba(0,0,0,.4)"}}>
             Unearth your next<br/><em style={{color:"#5ea8f0",fontStyle:"italic"}}>development.</em>
           </h2>
-          <p className="mob-subtitle" style={{fontSize:14,color:"rgba(200,220,240,.7)",lineHeight:1.6,maxWidth:400,margin:"0 auto 20px",textAlign:"center" as const}}>
+          <p className="mob-subtitle hero-animate" style={{fontSize:14,color:"rgba(200,220,240,.7)",lineHeight:1.6,maxWidth:400,margin:"0 auto 20px",textAlign:"center" as const}}>
             Dirección, metros y precio — análisis de zonificación, mercado y financiero en segundos.
           </p>
-          <div className="mob-form" style={{width:"100%",maxWidth:680,background:"rgba(255,255,255,.07)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,.15)",borderRadius:20,padding:"28px 32px",boxShadow:"0 8px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.1)"}}>
+          <div className="mob-form hero-animate" style={{width:"100%",maxWidth:680,background:"rgba(255,255,255,.07)",backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",border:"1px solid rgba(255,255,255,.15)",borderRadius:20,padding:"28px 32px",boxShadow:"0 8px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.1)"}}>
             <div className="g3" style={{marginBottom:14}}>
               <div style={{gridColumn:"1/-1"}}>
                 <label style={{fontSize:10,fontWeight:700,letterSpacing:".09em",textTransform:"uppercase" as const,color:"rgba(180,210,240,.6)",marginBottom:6,display:"block"}}>Dirección del terreno</label>
@@ -1327,7 +1384,7 @@ if(d.error_uso_suelo){
       </header>
 
       <div className="mob-results-content" style={{width:"100%",padding:"24px 28px 100px",boxSizing:"border-box" as const,position:"relative",zIndex:1}}>
-        <div id="results-container" style={{paddingBottom:8,width:"100%",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
+        <div ref={resultsRef} id="results-container" style={{paddingBottom:8,width:"100%",animation:"fadeUp .4s cubic-bezier(.16,1,.3,1) both"}}>
 
           {/* MEMBRETE PDF */}
           <div id="pdf-membrete" style={{display:"none",background:"#fff",borderBottom:"2px solid #EAE5DF",padding:"20px 28px 18px",marginBottom:24,alignItems:"center",justifyContent:"space-between",gap:16}}>
@@ -1518,7 +1575,7 @@ if(d.error_uso_suelo){
                       <strong>Cálculo de ingresos:</strong> {finF.calculo_ingresos}
                     </div>
                   )}
-                  <div className="stagger" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12}}>
+                  <div ref={finRef} className="result-card stagger" style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(160px,1fr))",gap:12}}>
                     {[
                       {l:"Precio terreno",v:$(finF.precio_terreno)},
                       {l:"Costo construcción",v:$(finF.costo_construccion_total)},
@@ -1529,9 +1586,9 @@ if(d.error_uso_suelo){
                       {l:"Costo total",v:$(finF.costo_total_proyecto),b:true},
                       {l:"Ingreso estimado",v:$(finF.ingreso_total_estimado),b:true},
                       {l:"Utilidad bruta",v:$(finF.utilidad_bruta),col:finF.utilidad_bruta>=0?GREEN:"#dc2626",b:true},
-                      {l:"Margen bruto",v:pct(finF.margen_bruto_pct),col:finF.margen_bruto_pct>=15?GREEN:finF.margen_bruto_pct>=8?AMBER:"#dc2626",b:true},
-                      {l:"ROI",v:pct(finF.roi_pct),col:finF.roi_pct>=20?GREEN:finF.roi_pct>=10?AMBER:"#dc2626",b:true},
-                      {l:"TIR estimada",v:pct(finF.tir_estimada_pct),col:finF.tir_estimada_pct>=18?GREEN:finF.tir_estimada_pct>=10?AMBER:"#dc2626",b:true},
+                      {l:"Margen bruto",v:pct(finF.margen_bruto_pct),col:finF.margen_bruto_pct>=15?GREEN:finF.margen_bruto_pct>=8?AMBER:"#dc2626",b:true,metric:"margen"},
+                      {l:"ROI",v:pct(finF.roi_pct),col:finF.roi_pct>=20?GREEN:finF.roi_pct>=10?AMBER:"#dc2626",b:true,metric:"roi"},
+                      {l:"TIR estimada",v:pct(finF.tir_estimada_pct),col:finF.tir_estimada_pct>=18?GREEN:finF.tir_estimada_pct>=10?AMBER:"#dc2626",b:true,metric:"tir"},
                       {l:"Unidades reales",v:`${finF.unidades_reales||unidadesMax} und.`},
                       {l:"M² / unidad",v:finF.m2_promedio_unidad?`${finF.m2_promedio_unidad} m²`:"—"},
                       {l:"Precio/unidad",v:$(finF.precio_venta_por_unidad)},
@@ -1539,7 +1596,7 @@ if(d.error_uso_suelo){
                     ].map(k=>(
                       <div key={k.l} style={{background:"#F5F2EE",borderRadius:10,padding:"13px 15px"}}>
                         <div style={{fontSize:10,fontWeight:700,color:"#a09888",letterSpacing:".08em",textTransform:"uppercase" as const,marginBottom:4}}>{k.l}</div>
-                        <div style={{fontSize:(k as any).b?17:14,fontWeight:700,color:(k as any).col||"#1a1510"}}>{k.v||"—"}</div>
+                        <div data-metric={(k as any).metric} style={{fontSize:(k as any).b?17:14,fontWeight:700,color:(k as any).col||"#1a1510"}}>{k.v||"—"}</div>
                       </div>
                     ))}
                   </div>
@@ -1570,7 +1627,7 @@ if(d.error_uso_suelo){
                 </div>
               )}
               {verdFinal&&semColFinal&&(
-                <div style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`,animation:"fadeUp .35s cubic-bezier(.16,1,.3,1) .05s both"}}>
+                <div ref={semRef} className="result-card" style={{background:C.white,border:`2px solid ${semColFinal}`,borderRadius:16,padding:"26px 30px",boxShadow:`0 0 0 4px ${semColFinal}10`}}>
                   <div className="lbl" style={{marginBottom:8}}>Veredicto Final</div>
                   <div style={{fontFamily:"'Instrument Serif',Georgia,serif",fontSize:38,color:semColFinal,lineHeight:1,marginBottom:14}}>{verdFinal}</div>
                   <p style={{fontSize:14,color:"#3a3228",lineHeight:1.7,marginBottom:res.analisis.proximos_pasos?.length>0?14:0}}>{justFinal}</p>
