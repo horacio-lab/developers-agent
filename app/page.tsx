@@ -329,11 +329,12 @@ const [feedbackSending, setFeedbackSending] = useState(false);
       {scale:0.3,opacity:0},
       {scale:1,opacity:1,duration:0.9,ease:"back.out(1.7)",clearProps:"all"}
     );
-  },{dependencies:[semFinal]});
+  },{dependencies:[res?.analisis?.semaforo]});
 
-  // ── GSAP 4: Contadores financieros ──
+// ── GSAP 4: Contadores financieros ──
   useGSAP(()=>{
-    if(!finF||!finRef.current) return;
+    if(!res?.analisis?.financiero||!finRef.current) return;
+    const f=res.analisis.financiero;
     const animate=(selector:string,target:number,suffix:string)=>{
       const el=finRef.current?.querySelector(`[data-metric="${selector}"]`);
       if(!el||!target) return;
@@ -343,10 +344,10 @@ const [feedbackSending, setFeedbackSending] = useState(false);
         onUpdate:()=>{el.textContent=obj.v.toFixed(1)+suffix;},
       });
     };
-    animate("tir",finF.tir_estimada_pct||0,"%");
-    animate("roi",finF.roi_pct||0,"%");
-    animate("margen",finF.margen_bruto_pct||0,"%");
-  },{dependencies:[finF?.tir_estimada_pct]});
+    animate("tir",f.tir_estimada_pct||0,"%");
+    animate("roi",f.roi_pct||0,"%");
+    animate("margen",f.margen_bruto_pct||0,"%");
+  },{dependencies:[res?.analisis?.financiero?.tir_estimada_pct]});
 
   async function run(){
     if(!dir||!m2||!px){setErr("Completa todos los campos.");return;}
